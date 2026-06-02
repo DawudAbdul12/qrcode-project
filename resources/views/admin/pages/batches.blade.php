@@ -173,7 +173,7 @@
                                                 $healthLabel = 'Ready to print';
                                             }
                                         @endphp
-                                        <tr class="row-clickable {{ $isExpired || $qrExpired || $batch->status === 'recalled' ? 'row-danger' : ($expiresSoon ? 'row-warning' : '') }}" data-batch-row data-batch-id="{{ $batch->id }}" data-batch-search-text="{{ Str::lower(($batch->batch_number ?? '').' '.($batch->product?->name ?? '').' '.($batch->product?->company?->name ?? '').' '.($batch->qrCode?->token ?? '').' '.($batch->qrCode?->verification_url ?? '').' '.($batch->production_location ?? '')) }}" data-batch-qa="{{ $batch->qa_status }}" data-batch-status="{{ $batch->status }}" data-batch-qr="{{ $qrFilterStatus }}" data-batch-company="{{ $batch->product?->company_id ?? 'none' }}" data-batch-product="{{ $batch->product_id }}" data-batch-health="{{ $healthLabel }}">
+                                        <tr class="row-clickable {{ $isExpired || $qrExpired || $batch->status === 'recalled' ? 'row-danger' : ($expiresSoon ? 'row-warning' : '') }}" data-batch-row data-batch-id="{{ $batch->id }}" data-batch-search-text="{{ Str::lower(($batch->batch_number ?? '').' '.($batch->product?->name ?? '').' '.($batch->product?->company?->name ?? '').' '.($batch->qrCode?->token ?? '').' '.($batch->qrCode?->publicUrl() ?? '').' '.($batch->qrCode?->custom_path ?? '').' '.($batch->production_location ?? '')) }}" data-batch-qa="{{ $batch->qa_status }}" data-batch-status="{{ $batch->status }}" data-batch-qr="{{ $qrFilterStatus }}" data-batch-company="{{ $batch->product?->company_id ?? 'none' }}" data-batch-product="{{ $batch->product_id }}" data-batch-health="{{ $healthLabel }}">
                                             <td class="fit"><input class="row-check" type="checkbox" value="{{ $batch->id }}" data-batch-select aria-label="Select {{ $batch->batch_number }}"></td>
                                             <td>
                                                 <div style="display:grid;gap:7px;min-width:0">
@@ -202,10 +202,10 @@
                                                         <svg width="15" height="15"><use href="#i-edit"></use></svg>
                                                     </button>
                                                     @if ($batch->qrCode)
-                                                        <button class="icon-btn" type="button" data-copy-text="{{ $batch->qrCode->verification_url }}" aria-label="Copy QR verification URL">
+                                                        <button class="icon-btn" type="button" data-copy-text="{{ $batch->qrCode->publicUrl() }}" aria-label="Copy QR verification URL">
                                                             <svg width="15" height="15"><use href="#i-link"></use></svg>
                                                         </button>
-                                                        <a class="icon-btn" href="{{ $batch->qrCode->verification_url }}" target="_blank" rel="noopener" aria-label="Open verification page">
+                                                        <a class="icon-btn" href="{{ $batch->qrCode->publicUrl() }}" target="_blank" rel="noopener" aria-label="Open verification page">
                                                             <svg width="15" height="15"><use href="#i-globe"></use></svg>
                                                         </a>
                                                         <a class="icon-btn" href="{{ route('batches.qr-code.download', $batch) }}" aria-label="Download QR code">
@@ -330,6 +330,7 @@
                                     </select>
                                 </div>
                             </div>
+                            @include('partials.batch-qr-controls', ['batch' => null, 'qrCode' => null])
                             <button class="btn-add-content" type="submit">Create Batch</button>
                         </form>
 
@@ -385,6 +386,7 @@
                                         </select>
                                     </div>
                                 </div>
+                                @include('partials.batch-qr-controls', ['batch' => $batch, 'qrCode' => $batch->qrCode])
                                 <button class="btn-add-content" type="submit">Save Batch</button>
                             </form>
                         @endforeach
@@ -415,13 +417,16 @@
                                             </span>
                                             <div style="min-width:0">
                                                 <div class="company-main-name">{{ $batch->qrCode->token }}</div>
-                                                <div class="company-sub-name">{{ $batch->qrCode->verification_url }}</div>
+                                                <div class="company-sub-name">{{ $batch->qrCode->publicUrl() }}</div>
+                                                @if ($batch->qrCode->custom_path)
+                                                    <div class="company-sub-name">Custom link: /verify/{{ $batch->qrCode->custom_path }}</div>
+                                                @endif
                                                 <div style="margin-top:8px"><span class="status-pill {{ $batch->qrCode->status }}">{{ $batch->qrCode->status }}</span></div>
                                                 <div class="table-actions" style="margin-top:10px">
-                                                    <button class="icon-btn" type="button" data-copy-text="{{ $batch->qrCode->verification_url }}" aria-label="Copy QR verification URL">
+                                                    <button class="icon-btn" type="button" data-copy-text="{{ $batch->qrCode->publicUrl() }}" aria-label="Copy QR verification URL">
                                                         <svg width="15" height="15"><use href="#i-link"></use></svg>
                                                     </button>
-                                                    <a class="icon-btn" href="{{ $batch->qrCode->verification_url }}" target="_blank" rel="noopener" aria-label="Open verification page">
+                                                    <a class="icon-btn" href="{{ $batch->qrCode->publicUrl() }}" target="_blank" rel="noopener" aria-label="Open verification page">
                                                         <svg width="15" height="15"><use href="#i-globe"></use></svg>
                                                     </a>
                                                     <a class="icon-btn" href="{{ route('batches.qr-code.download', $batch) }}" aria-label="Download QR code">
@@ -442,11 +447,8 @@
                                         <form method="POST" action="{{ route('batches.qr-code.controls', $batch) }}" style="margin-top:12px">
                                             @csrf
                                             @method('PUT')
-                                            <label class="form-label">QR Expiry Control</label>
-                                            <div class="form-row-2">
-                                                <input class="input-field" type="date" name="qr_expires_at" value="{{ $batch->qrCode->expires_at?->format('Y-m-d') }}">
-                                                <button class="btn-share" type="submit" style="justify-content:center">Save Expiry</button>
-                                            </div>
+                                            @include('partials.batch-qr-controls', ['batch' => $batch, 'qrCode' => $batch->qrCode])
+                                            <button class="btn-share" type="submit" style="width:100%;justify-content:center;margin-top:12px">Save QR Settings</button>
                                         </form>
                                         @if ($batch->qrCode->isRevoked())
                                             <form method="POST" action="{{ route('batches.qr-code.activate', $batch) }}" style="margin-top:12px">

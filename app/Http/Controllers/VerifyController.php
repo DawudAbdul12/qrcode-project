@@ -14,20 +14,22 @@ class VerifyController extends Controller
         $qrCode = QrCode::query()
             ->with(['batch.product.company.profile', 'batch.product.suitabilityItems'])
             ->where('token', $token)
+            ->orWhere('custom_path', $token)
             ->first();
 
         $status = $this->resolveStatus($qrCode);
-        $existingScans = $scanLogger->scanCount($token, $qrCode);
+        $trackedToken = $qrCode?->token ?? $token;
+        $existingScans = $scanLogger->scanCount($trackedToken, $qrCode);
         $status = $this->applyScanRiskStatus($status, $existingScans);
         $shouldLogScan = $request->isMethod('GET');
         $scanCount = $existingScans + ($shouldLogScan ? 1 : 0);
 
         if ($shouldLogScan) {
-            $scanLogger->log($request, $token, $qrCode, $status);
+            $scanLogger->log($request, $trackedToken, $qrCode, $status);
         }
 
         return view('verify.show', [
-            'token' => $token,
+            'token' => $trackedToken,
             'qrCode' => $qrCode,
             'batch' => $qrCode?->batch,
             'product' => $qrCode?->batch?->product,

@@ -139,16 +139,27 @@ class DatabaseSeeder extends Seeder
                         'status' => $batchItem['status'],
                     ]);
 
+                    $customPath = Str::slug($companyItem['slug'].'-'.$batchItem['batch_number']);
+
                     $qrCode = QrCode::query()->create([
                         'batch_id' => $batch->id,
                         'token' => $batchItem['token'],
-                        'verification_url' => url('/verify/'.$batchItem['token']),
+                        'verification_url' => url('/verify/'.$customPath),
+                        'custom_path' => $customPath,
                         'status' => $batchItem['qr_status'],
                         'generated_at' => Carbon::parse($batchItem['manufacture_date'])->addDays(2),
                         'activated_at' => $batchItem['qr_status'] === 'revoked' ? null : Carbon::parse($batchItem['manufacture_date'])->addDays(3),
                         'expires_at' => Carbon::parse($batchItem['qr_expires_at']),
                         'revoked_at' => $batchItem['qr_status'] === 'revoked' ? Carbon::parse($batchItem['revoked_at']) : null,
                         'revocation_reason' => $batchItem['revocation_reason'] ?? null,
+                        'foreground_color' => $companyItem['palette'][0],
+                        'background_color' => '#ffffff',
+                        'label_text' => $batchItem['batch_number'],
+                        'show_label' => true,
+                        'show_logo' => true,
+                        'external_link_label' => 'View official product page',
+                        'external_link_url' => rtrim($companyItem['company']['website'], '/').'/products/'.Str::slug($product->name),
+                        'show_external_link' => $batchItem['qr_status'] === 'active',
                     ]);
 
                     LabelOrder::query()->create([

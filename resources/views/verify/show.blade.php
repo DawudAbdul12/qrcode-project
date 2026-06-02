@@ -51,6 +51,10 @@
     $showIngredients = ! $isSuspicious;
     $showUsageInstructions = ! $isSuspicious && ! $isExpired;
     $showFooter = ! in_array($status, ['recalled', 'revoked', 'invalid'], true);
+    $externalLinkUrl = $qrCode?->show_external_link ? $qrCode->external_link_url : null;
+    $showExternalLink = $isValid && $status === 'genuine' && filled($externalLinkUrl);
+    $externalLinkLabel = $qrCode?->external_link_label ?: 'Continue to approved link';
+    $externalLinkHost = $externalLinkUrl ? parse_url($externalLinkUrl, PHP_URL_HOST) : null;
     $supportGuidance = match ($status) {
         'recalled' => 'Stop using or distributing this product immediately. Contact the manufacturer for the next steps.',
         'revoked' => 'Do not rely on this QR code. Contact the manufacturer to confirm the product before use or distribution.',
@@ -142,6 +146,11 @@
         .urgent-support { margin-top: 14px; padding: 14px; border: 1px solid color-mix(in srgb, var(--accent) 28%, white); border-radius: 12px; background: color-mix(in srgb, var(--accent) 6%, white); }
         .urgent-support strong { display: block; color: var(--secondary); font-size: 14px; }
         .urgent-support .copy { margin-top: 3px; font-size: 13px; }
+        .external-cta { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 14px; padding: 15px; border: 1px solid color-mix(in srgb, var(--primary) 20%, white); border-radius: 14px; background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 8%, white), #fff); }
+        .external-cta-title { color: var(--secondary); font-size: 14px; font-weight: 900; }
+        .external-cta-copy { margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+        .external-cta .button { flex-shrink: 0; border-color: color-mix(in srgb, var(--primary) 28%, white); background: var(--primary); color: #fff; }
+        .external-cta .button:hover { color: #fff; box-shadow: 0 10px 24px color-mix(in srgb, var(--primary) 24%, transparent); }
         .guidance-list, .faq { display: grid; gap: 9px; }
         .guidance { display: grid; grid-template-columns: 9px minmax(0, 1fr); gap: 11px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; transition: border-color .18s ease, box-shadow .18s ease; }
         .guidance:hover { border-color: color-mix(in srgb, var(--primary) 24%, white); box-shadow: 0 5px 14px rgba(16,24,40,.04); }
@@ -162,9 +171,20 @@
         .product-video { overflow: hidden; aspect-ratio: 16 / 9; border-radius: 14px; background: #101828; }
         .product-video iframe { width: 100%; height: 100%; border: 0; }
         .gallery { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
-        .gallery a { overflow: hidden; aspect-ratio: 1; border: 1px solid var(--line); border-radius: 12px; background: #f8fafc; }
+        .gallery button { overflow: hidden; aspect-ratio: 1; border: 1px solid var(--line); border-radius: 12px; background: #f8fafc; cursor: zoom-in; }
         .gallery img { width: 100%; height: 100%; object-fit: cover; transition: transform .2s ease; }
-        .gallery a:hover img { transform: scale(1.04); }
+        .gallery button:hover img { transform: scale(1.04); }
+        .gallery-lightbox { position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center; padding: 18px; background: rgba(16, 24, 40, .84); backdrop-filter: blur(10px); }
+        .gallery-lightbox.active { display: flex; }
+        .gallery-lightbox-card { position: relative; width: min(920px, 100%); overflow: hidden; border: 1px solid rgba(255,255,255,.18); border-radius: 22px; background: #0b1220; box-shadow: 0 24px 70px rgba(0,0,0,.34); }
+        .gallery-lightbox-stage { display: grid; place-items: center; min-height: min(72vh, 620px); padding: 48px 18px 58px; }
+        .gallery-lightbox-stage img { max-width: 100%; max-height: min(66vh, 560px); border-radius: 14px; object-fit: contain; box-shadow: 0 18px 42px rgba(0,0,0,.28); }
+        .gallery-lightbox-close, .gallery-lightbox-nav { position: absolute; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.12); color: #fff; cursor: pointer; backdrop-filter: blur(10px); }
+        .gallery-lightbox-close { top: 14px; right: 14px; width: 38px; height: 38px; border-radius: 999px; font-size: 24px; line-height: 1; }
+        .gallery-lightbox-nav { top: 50%; width: 42px; height: 42px; border-radius: 999px; font-size: 28px; transform: translateY(-50%); }
+        .gallery-lightbox-nav.prev { left: 14px; }
+        .gallery-lightbox-nav.next { right: 14px; }
+        .gallery-lightbox-caption { position: absolute; right: 18px; bottom: 16px; left: 18px; display: flex; justify-content: space-between; gap: 12px; color: rgba(255,255,255,.78); font-size: 12px; font-weight: 800; }
         .content-copy { white-space: pre-line; }
         .company-card { display: flex; align-items: flex-start; gap: 13px; padding: 13px; border: 1px solid rgba(16,24,40,.07); border-radius: 13px; background: #f8fafc; }
         .company-logo { width: 52px; height: 52px; display: grid; place-items: center; flex-shrink: 0; overflow: hidden; border-radius: 14px; background: color-mix(in srgb, var(--primary) 10%, white); color: var(--primary); font-weight: 900; }
@@ -190,9 +210,18 @@
             .profile-body, .section { padding: 15px; }
             .verification { grid-template-columns: minmax(0, 1fr) auto; padding: 13px; }
             .verification h2 { font-size: 17px; }
+            .external-cta { align-items: stretch; flex-direction: column; }
+            .external-cta .button { width: 100%; }
             .row { gap: 10px; }
             .row span:last-child { max-width: 58%; }
             .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .gallery-lightbox { padding: 10px; }
+            .gallery-lightbox-card { border-radius: 18px; }
+            .gallery-lightbox-stage { min-height: 72vh; padding: 58px 10px 62px; }
+            .gallery-lightbox-nav { top: auto; bottom: 13px; transform: none; }
+            .gallery-lightbox-nav.prev { left: 14px; }
+            .gallery-lightbox-nav.next { right: 14px; }
+            .gallery-lightbox-caption { justify-content: center; }
             .whatsapp { right: 14px; bottom: 14px; }
         }
     </style>
@@ -253,6 +282,19 @@
                     </div>
                 @endif
 
+                @if ($showExternalLink)
+                    <div class="external-cta">
+                        <div>
+                            <div class="external-cta-title">Approved external link</div>
+                            <div class="external-cta-copy">This link was added by the verified batch owner{{ $externalLinkHost ? ' · '.$externalLinkHost : '' }}.</div>
+                        </div>
+                        <a class="button" href="{{ $externalLinkUrl }}" target="_blank" rel="noopener noreferrer">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{!! $iconPaths['website'] !!}</svg>
+                            {{ $externalLinkLabel }}
+                        </a>
+                    </div>
+                @endif
+
                 @if ($isValid && ! $isHardStop)
                     <nav class="profile-nav" aria-label="Product profile sections">
                         @if($publicSuitability->isNotEmpty())<a href="#suitability">Warnings</a>@endif
@@ -298,7 +340,11 @@
                 <section class="section" id="gallery">
                     <div class="section-head"><div><h2>Product Gallery</h2><div class="section-sub">Compare the product and packaging with the item in hand.</div></div></div>
                     <div class="gallery">
-                        @foreach($productGalleryUrls as $galleryUrl)<a href="{{ $galleryUrl }}" target="_blank" rel="noopener"><img src="{{ $galleryUrl }}" alt="{{ $product->name }} gallery image"></a>@endforeach
+                        @foreach($productGalleryUrls as $galleryUrl)
+                            <button type="button" data-gallery-open data-gallery-index="{{ $loop->index }}" data-gallery-src="{{ $galleryUrl }}" data-gallery-alt="{{ $product->name }} gallery image {{ $loop->iteration }}">
+                                <img src="{{ $galleryUrl }}" alt="{{ $product->name }} gallery image {{ $loop->iteration }}">
+                            </button>
+                        @endforeach
                     </div>
                 </section>
             @endif
@@ -372,6 +418,20 @@
             <svg width="29" height="29" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 3.5A11.7 11.7 0 0 0 12.1 0C5.6 0 .4 5.2.4 11.7c0 2.1.5 4.1 1.6 5.9L0 24l6.6-1.9c1.7.9 3.6 1.4 5.5 1.4h.1c6.4 0 11.7-5.2 11.7-11.7 0-3.1-1.2-6.1-3.4-8.3Zm-8.3 18c-1.7 0-3.4-.5-4.9-1.3l-.5-.3-3.9 1.2 1.1-3.8-.3-.5a9.6 9.6 0 1 1 8.5 4.7Zm5.3-7.2c-.3-.1-1.7-.8-1.9-.9-.3-.1-.5-.1-.7.2-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-1.7-.8-2.8-1.5-3.9-3.4-.3-.5.3-.5.8-1.6.1-.2 0-.4-.1-.6-.1-.1-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5H8c-.2 0-.6.1-.9.4-.3.3-1.2 1.2-1.2 2.9s1.2 3.3 1.4 3.6c.2.2 2.4 3.7 5.9 5.2 2.2.9 3 .9 4.1.8.7-.1 1.7-.7 1.9-1.3.2-.6.2-1.2.2-1.3-.1-.2-.3-.3-.6-.4Z" fill="currentColor"/></svg>
         </a>
     @endif
+    <div class="gallery-lightbox" data-gallery-lightbox aria-hidden="true">
+        <div class="gallery-lightbox-card" role="dialog" aria-modal="true" aria-label="Product gallery preview">
+            <button class="gallery-lightbox-close" type="button" data-gallery-close aria-label="Close gallery">×</button>
+            <button class="gallery-lightbox-nav prev" type="button" data-gallery-prev aria-label="Previous image">‹</button>
+            <div class="gallery-lightbox-stage">
+                <img src="" alt="" data-gallery-image>
+            </div>
+            <button class="gallery-lightbox-nav next" type="button" data-gallery-next aria-label="Next image">›</button>
+            <div class="gallery-lightbox-caption">
+                <span data-gallery-caption>{{ $product?->name ?? 'Product image' }}</span>
+                <span data-gallery-count></span>
+            </div>
+        </div>
+    </div>
     <script>
         const shareButton = document.querySelector('[data-share-page]');
         const shareStatus = document.querySelector('[data-share-status]');
@@ -387,6 +447,66 @@
             } catch (error) {
                 if (error.name !== 'AbortError' && shareStatus) shareStatus.textContent = 'Unable to share link';
             }
+        });
+
+        const galleryItems = Array.from(document.querySelectorAll('[data-gallery-open]')).map((button) => ({
+            src: button.dataset.gallerySrc,
+            alt: button.dataset.galleryAlt || 'Product gallery image',
+            trigger: button,
+        }));
+        const galleryLightbox = document.querySelector('[data-gallery-lightbox]');
+        const galleryImage = document.querySelector('[data-gallery-image]');
+        const galleryCaption = document.querySelector('[data-gallery-caption]');
+        const galleryCount = document.querySelector('[data-gallery-count]');
+        let activeGalleryIndex = 0;
+
+        const renderGalleryImage = () => {
+            const item = galleryItems[activeGalleryIndex];
+            if (!item || !galleryImage) return;
+            galleryImage.src = item.src;
+            galleryImage.alt = item.alt;
+            if (galleryCaption) galleryCaption.textContent = item.alt;
+            if (galleryCount) galleryCount.textContent = `${activeGalleryIndex + 1} / ${galleryItems.length}`;
+        };
+
+        const openGallery = (index) => {
+            if (!galleryLightbox || galleryItems.length === 0) return;
+            activeGalleryIndex = index;
+            renderGalleryImage();
+            galleryLightbox.classList.add('active');
+            galleryLightbox.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+            document.querySelector('[data-gallery-close]')?.focus();
+        };
+
+        const closeGallery = () => {
+            if (!galleryLightbox) return;
+            galleryLightbox.classList.remove('active');
+            galleryLightbox.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+            galleryItems[activeGalleryIndex]?.trigger?.focus();
+        };
+
+        const moveGallery = (direction) => {
+            if (galleryItems.length === 0) return;
+            activeGalleryIndex = (activeGalleryIndex + direction + galleryItems.length) % galleryItems.length;
+            renderGalleryImage();
+        };
+
+        document.querySelectorAll('[data-gallery-open]').forEach((button, index) => {
+            button.addEventListener('click', () => openGallery(index));
+        });
+        document.querySelector('[data-gallery-close]')?.addEventListener('click', closeGallery);
+        document.querySelector('[data-gallery-prev]')?.addEventListener('click', () => moveGallery(-1));
+        document.querySelector('[data-gallery-next]')?.addEventListener('click', () => moveGallery(1));
+        galleryLightbox?.addEventListener('click', (event) => {
+            if (event.target === galleryLightbox) closeGallery();
+        });
+        document.addEventListener('keydown', (event) => {
+            if (!galleryLightbox?.classList.contains('active')) return;
+            if (event.key === 'Escape') closeGallery();
+            if (event.key === 'ArrowLeft') moveGallery(-1);
+            if (event.key === 'ArrowRight') moveGallery(1);
         });
     </script>
 </body>

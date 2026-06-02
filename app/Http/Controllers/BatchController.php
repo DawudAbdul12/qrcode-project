@@ -22,9 +22,11 @@ class BatchController extends Controller
     public function store(Request $request): RedirectResponse
     {
         DB::transaction(function () use ($request): void {
+            $this->normalizeQrRequest($request);
+            $qrSettings = $this->validatedQrSettings($request);
             $batch = Batch::query()->create($this->validatedData($request));
 
-            $this->generateQrCodeFor($batch);
+            $this->generateQrCodeFor($batch, $qrSettings);
             $this->logActivity('batch.created', $batch, 'Batch '.$batch->batch_number.' created and QR code generated.');
         });
 
@@ -35,8 +37,21 @@ class BatchController extends Controller
 
     public function update(Request $request, Batch $batch): RedirectResponse
     {
-        $batch->update($this->validatedData($request, $batch));
-        $this->logActivity('batch.updated', $batch, 'Batch '.$batch->batch_number.' updated.');
+        DB::transaction(function () use ($request, $batch): void {
+            $batch->loadMissing('qrCode');
+            $this->normalizeQrRequest($request);
+            $qrSettings = $this->validatedQrSettings($request, $batch->qrCode);
+
+            $batch->update($this->validatedData($request, $batch));
+
+            if ($batch->qrCode) {
+                $this->updateQrCodeFromSettings($request, $batch, $qrSettings);
+            } else {
+                $this->generateQrCodeFor($batch, $qrSettings);
+            }
+
+            $this->logActivity('batch.updated', $batch, 'Batch '.$batch->batch_number.' updated.');
+        });
 
         return redirect()
             ->route('active8.page', 'batches')
@@ -135,6 +150,10 @@ class BatchController extends Controller
 
         abort_unless($batch->qrCode, 404);
 
+        if ($request->filled('custom_path')) {
+            $request->merge(['custom_path' => Str::slug((string) $request->input('custom_path'))]);
+        }
+
         $data = $request->validate([
             'revocation_reason' => ['nullable', 'string', 'max:255'],
         ]);
@@ -162,18 +181,9 @@ class BatchController extends Controller
 
         abort_unless($batch->qrCode, 404);
 
-        $data = $request->validate([
-            'qr_expires_at' => ['nullable', 'date'],
-        ]);
-
-        if (Schema::hasColumn('qr_codes', 'expires_at')) {
-            $batch->qrCode->update([
-                'expires_at' => filled($data['qr_expires_at'] ?? null)
-                    ? Carbon::parse($data['qr_expires_at'])->endOfDay()
-                    : null,
-                'status' => $batch->qrCode->status === 'expired' ? 'active' : $batch->qrCode->status,
-            ]);
-        }
+        $this->normalizeQrRequest($request);
+        $data = $this->validatedQrSettings($request, $batch->qrCode);
+        $this->updateQrCodeFromSettings($request, $batch, $data);
 
         $this->logActivity('qr.controls_updated', $batch, 'QR lifecycle controls updated for batch '.$batch->batch_number.'.');
 
@@ -221,15 +231,94 @@ class BatchController extends Controller
         ]);
     }
 
-    private function generateQrCodeFor(Batch $batch): QrCode
+    private function normalizeQrRequest(Request $request): void
     {
-        return retry(3, function () use ($batch): QrCode {
+        if ($request->filled('custom_path')) {
+            $request->merge(['custom_path' => Str::slug((string) $request->input('custom_path'))]);
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validatedQrSettings(Request $request, ?QrCode $qrCode = null): array
+    {
+        return $request->validate([
+            'qr_expires_at' => ['nullable', 'date'],
+            'custom_path' => [
+                'nullable',
+                'string',
+                'max:72',
+                'regex:/^[a-z0-9][a-z0-9-]*[a-z0-9]$/',
+                Rule::unique('qr_codes', 'custom_path')->ignore($qrCode?->id),
+            ],
+            'foreground_color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'background_color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'label_text' => ['nullable', 'string', 'max:72'],
+            'show_label' => ['nullable', 'boolean'],
+            'show_logo' => ['nullable', 'boolean'],
+            'external_link_label' => ['nullable', 'string', 'max:80'],
+            'external_link_url' => ['nullable', 'url:http,https', 'max:2048'],
+            'show_external_link' => ['nullable', 'boolean'],
+        ]);
+    }
+
+    private function updateQrCodeFromSettings(Request $request, Batch $batch, array $settings): void
+    {
+        $batch->loadMissing('qrCode');
+
+        if (! $batch->qrCode) {
+            return;
+        }
+
+        $payload = [];
+
+        if (Schema::hasColumn('qr_codes', 'expires_at')) {
+            $payload['expires_at'] = filled($settings['qr_expires_at'] ?? null)
+                ? Carbon::parse($settings['qr_expires_at'])->endOfDay()
+                : null;
+            $payload['status'] = $batch->qrCode->status === 'expired' ? 'active' : $batch->qrCode->status;
+        }
+
+        if (Schema::hasColumn('qr_codes', 'custom_path')) {
+            $customPath = filled($settings['custom_path'] ?? null)
+                ? Str::slug((string) $settings['custom_path'])
+                : null;
+
+            $payload['custom_path'] = $customPath;
+            $payload['verification_url'] = url('/verify/'.($customPath ?: $batch->qrCode->token));
+        }
+
+        if (Schema::hasColumn('qr_codes', 'foreground_color')) {
+            $payload['foreground_color'] = $settings['foreground_color'] ?? '#111827';
+            $payload['background_color'] = $settings['background_color'] ?? '#ffffff';
+            $payload['label_text'] = $settings['label_text'] ?? null;
+            $payload['show_label'] = $request->boolean('show_label');
+            $payload['show_logo'] = $request->boolean('show_logo');
+        }
+
+        if (Schema::hasColumn('qr_codes', 'external_link_url')) {
+            $payload['external_link_label'] = $settings['external_link_label'] ?? null;
+            $payload['external_link_url'] = $settings['external_link_url'] ?? null;
+            $payload['show_external_link'] = $request->boolean('show_external_link')
+                && filled($settings['external_link_url'] ?? null);
+        }
+
+        if ($payload !== []) {
+            $batch->qrCode->update($payload);
+        }
+    }
+
+    private function generateQrCodeFor(Batch $batch, array $settings = []): QrCode
+    {
+        return retry(3, function () use ($batch, $settings): QrCode {
             $token = 'a8_'.Str::lower(Str::random(32));
+            $customPath = $settings['custom_path'] ?? null;
 
             $payload = [
                 'batch_id' => $batch->id,
                 'token' => $token,
-                'verification_url' => url('/verify/'.$token),
+                'verification_url' => url('/verify/'.($customPath ?: $token)),
                 'status' => 'active',
                 'generated_at' => now(),
                 'activated_at' => now(),
@@ -237,6 +326,31 @@ class BatchController extends Controller
 
             if (Schema::hasColumn('qr_codes', 'expires_at') && $batch->expiry_date) {
                 $payload['expires_at'] = $batch->expiry_date->copy()->endOfDay();
+            }
+
+            if (Schema::hasColumn('qr_codes', 'expires_at') && array_key_exists('qr_expires_at', $settings)) {
+                $payload['expires_at'] = filled($settings['qr_expires_at'] ?? null)
+                    ? Carbon::parse($settings['qr_expires_at'])->endOfDay()
+                    : null;
+            }
+
+            if (Schema::hasColumn('qr_codes', 'custom_path')) {
+                $payload['custom_path'] = $customPath;
+            }
+
+            if (Schema::hasColumn('qr_codes', 'label_text')) {
+                $payload['foreground_color'] = $settings['foreground_color'] ?? '#111827';
+                $payload['background_color'] = $settings['background_color'] ?? '#ffffff';
+                $payload['label_text'] = $settings['label_text'] ?? $batch->batch_number;
+                $payload['show_label'] = (bool) ($settings['show_label'] ?? false);
+                $payload['show_logo'] = (bool) ($settings['show_logo'] ?? false);
+            }
+
+            if (Schema::hasColumn('qr_codes', 'external_link_url')) {
+                $payload['external_link_label'] = $settings['external_link_label'] ?? null;
+                $payload['external_link_url'] = $settings['external_link_url'] ?? null;
+                $payload['show_external_link'] = (bool) ($settings['show_external_link'] ?? false)
+                    && filled($settings['external_link_url'] ?? null);
             }
 
             return QrCode::query()->create($payload);

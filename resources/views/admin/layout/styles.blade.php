@@ -282,6 +282,14 @@
         .danger-link { color: var(--red); background: transparent; font-size: 12px; font-weight: 700; }
         .table-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
         .table-actions form { margin: 0; }
+        .qr-custom-form { display: grid; gap: 12px; margin-top: 14px; padding: 14px; border: 1px solid var(--gray-100); border-radius: 14px; background: linear-gradient(180deg, #fff, #fbfdff); }
+        .qr-link-builder { display: flex; align-items: center; gap: 0; overflow: hidden; border: 1px solid var(--gray-200); border-radius: 10px; background: var(--white); }
+        .qr-link-builder span { flex-shrink: 0; padding: 9px 0 9px 11px; color: var(--gray-400); font-size: 12px; font-weight: 800; white-space: nowrap; }
+        .qr-link-builder .input-field { min-width: 0; margin: 0; border: 0; border-radius: 0; background: transparent; }
+        .qr-color-field { display: grid; gap: 7px; color: var(--gray-500); font-size: 11px; font-weight: 900; text-transform: uppercase; }
+        .qr-color-field input { width: 100%; height: 38px; padding: 4px; border: 1px solid var(--gray-200); border-radius: 10px; background: var(--white); cursor: pointer; }
+        .qr-toggle-row { display: flex; align-items: center; gap: 9px; color: var(--gray-700); font-size: 12px; font-weight: 800; }
+        .qr-toggle-row input { width: 15px; height: 15px; accent-color: var(--blue); }
         .user-create-drawer { position: fixed; inset: 0; z-index: 40; pointer-events: none; visibility: hidden; }
         .user-create-drawer.active { pointer-events: auto; visibility: visible; }
         .drawer-backdrop { position: absolute; inset: 0; background: rgba(17, 24, 39, .38); opacity: 0; transition: opacity .22s ease; }
