@@ -164,6 +164,17 @@
                                 </table>
                             </div>
                         </div>
+
+                        <div class="premium-card">
+                            <div class="premium-card-header">
+                                <div>
+                                    <div class="premium-title">Audit Trail</div>
+                                    <div class="premium-subtitle">Recent operational changes and QR lifecycle events.</div>
+                                </div>
+                                <a class="premium-link" href="{{ route('active8.page', 'audit-trail') }}">Open trail</a>
+                            </div>
+                            @include('partials.admin-audit-list', ['logs' => $recentActivityLogs->take(6), 'emptyCopy' => 'Batch and QR lifecycle changes will appear here.'])
+                        </div>
                     </div>
 
                     <div class="dashboard-stack">
@@ -290,17 +301,6 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="premium-card">
-                            <div class="premium-card-header">
-                                <div>
-                                    <div class="premium-title">Audit Trail</div>
-                                    <div class="premium-subtitle">Recent operational changes and QR lifecycle events.</div>
-                                </div>
-                                <a class="premium-link" href="{{ route('active8.page', 'audit-trail') }}">Open trail</a>
-                            </div>
-                            @include('partials.admin-audit-list', ['logs' => $recentActivityLogs->take(6), 'emptyCopy' => 'Batch and QR lifecycle changes will appear here.'])
                         </div>
                     </div>
                 </div>
