@@ -20,7 +20,6 @@ class VerifyController extends Controller
         $status = $this->resolveStatus($qrCode);
         $trackedToken = $qrCode?->token ?? $token;
         $existingScans = $scanLogger->scanCount($trackedToken, $qrCode);
-        $status = $this->applyScanRiskStatus($status, $existingScans);
         $shouldLogScan = $request->isMethod('GET');
         $scanCount = $existingScans + ($shouldLogScan ? 1 : 0);
 
@@ -70,14 +69,5 @@ class VerifyController extends Controller
         }
 
         return 'genuine';
-    }
-
-    private function applyScanRiskStatus(string $status, int $existingScans): string
-    {
-        if ($status !== 'genuine') {
-            return $status;
-        }
-
-        return $existingScans >= 10 ? 'suspicious' : $status;
     }
 }
