@@ -68,7 +68,7 @@ class CompanyController extends Controller
             'scanLogs' => $scanLogs,
             'recentScans' => $scanLogs->take(8),
             'recentOrders' => $labelOrders->take(5),
-            'recentBatches' => $batches->take(5),
+            'recentBatches' => $batches->take(20),
             'activityLogs' => $activityLogs,
             'qrCodeCount' => $qrCodeCount,
             'genuineScans' => $genuineScans,

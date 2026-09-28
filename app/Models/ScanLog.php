@@ -12,6 +12,7 @@ class ScanLog extends Model
 
     protected $fillable = [
         'qr_code_id',
+        'label_code_id',
         'token_scanned',
         'status_result',
         'scanned_at',
@@ -35,5 +36,10 @@ class ScanLog extends Model
     public function qrCode(): BelongsTo
     {
         return $this->belongsTo(QrCode::class);
+    }
+
+    public function labelCode(): BelongsTo
+    {
+        return $this->belongsTo(LabelCode::class);
     }
 }

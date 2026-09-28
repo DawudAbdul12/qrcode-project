@@ -6,6 +6,7 @@
                 </div>
                 <div class="topbar-actions">
                     <a class="btn-learn" href="{{ route('active8.page', 'batches') }}">Batches</a>
+                    <a class="btn-learn" href="{{ route('active8.page', 'label-codes') }}">View Codes</a>
                     <a class="btn-share" href="{{ route('active8.page', 'dashboard') }}">
                         <svg width="14" height="14"><use href="#i-activity"></use></svg>
                         Dashboard
@@ -40,13 +41,17 @@
                             <div class="company-detail-label">Total Labels</div>
                             <div class="company-detail-value">{{ number_format($labelOrders->sum('print_quantity')) }}</div>
                         </div>
+                        <div class="company-detail-card">
+                            <div class="company-detail-label">USSD Codes</div>
+                            <div class="company-detail-value">{{ number_format($labelCodeSummary['total'] ?? 0) }}</div>
+                        </div>
                     </div>
 
                     <div class="admin-card">
                         <div class="admin-card-header">
                             <div>
                                 <div class="admin-card-title">Print Order Registry</div>
-                                <div class="admin-card-sub">Track label type, print quantity, printer vendor, delivery date, and production status.</div>
+                                <div class="admin-card-sub">Track label type, print quantity, generated USSD codes, printer vendor, delivery date, and production status.</div>
                             </div>
                             <button class="btn-share" type="button" data-order-drawer-open data-order-form="create">
                                 <svg width="14" height="14"><use href="#i-plus"></use></svg>
@@ -108,6 +113,7 @@
                                         <th>Batch</th>
                                         <th class="fit">Type</th>
                                         <th class="fit">Quantity</th>
+                                        <th class="fit">USSD Codes</th>
                                         <th class="fit">Status</th>
                                         <th class="fit">Actions</th>
                                     </tr>
@@ -131,12 +137,20 @@
                                             </td>
                                             <td class="fit"><span class="status-pill">{{ $order->label_type }}</span></td>
                                             <td class="fit">{{ number_format($order->print_quantity) }}</td>
+                                            <td class="fit">
+                                                <span class="status-pill {{ $order->label_codes_count === $order->print_quantity ? 'active' : 'pending' }}">
+                                                    {{ number_format($order->label_codes_count) }}
+                                                </span>
+                                            </td>
                                             <td class="fit"><span class="status-pill {{ $order->status }}">{{ $order->status }}</span></td>
                                             <td class="fit">
                                                 <div class="table-actions">
                                                     <button class="icon-btn" type="button" data-order-drawer-open data-order-form="details-{{ $order->id }}" aria-label="View order details">
                                                         <svg width="15" height="15"><use href="#i-eye"></use></svg>
                                                     </button>
+                                                    <a class="icon-btn" href="{{ route('label-orders.codes.export', $order) }}" aria-label="Download USSD codes CSV">
+                                                        <svg width="15" height="15"><use href="#i-download"></use></svg>
+                                                    </a>
                                                     <button class="icon-btn" type="button" data-order-drawer-open data-order-form="edit-{{ $order->id }}" aria-label="Edit label order">
                                                         <svg width="15" height="15"><use href="#i-edit"></use></svg>
                                                     </button>
@@ -151,10 +165,10 @@
                                             </td>
                                         </tr>
                                     @empty
-                                        <tr data-order-empty><td colspan="7">No label orders yet.</td></tr>
+                                        <tr data-order-empty><td colspan="8">No label orders yet.</td></tr>
                                     @endforelse
                                     <tr class="filter-empty" data-order-no-results>
-                                        <td colspan="7">
+                                        <td colspan="8">
                                             <div class="filter-empty-title">No label orders match those filters.</div>
                                             <div class="filter-empty-copy">Try another company, batch, type, or status.</div>
                                             <button class="btn-learn" type="button" data-clear-order-filters>Clear filters</button>
@@ -235,6 +249,7 @@
                             </div>
                             <label class="form-label">Print Quantity</label>
                             <input class="input-field" type="number" min="1" name="print_quantity" value="1000" required>
+                            <div class="company-sub-name" style="margin:-8px 0 12px">The system creates one unique USSD code for every printed label.</div>
                             <label class="form-label">Printer Vendor</label>
                             <input class="input-field" name="printer_vendor" placeholder="SecurePrint Ghana">
                             <div class="form-row-2">
@@ -309,6 +324,9 @@
                                 </div>
                                 <label class="form-label">Print Quantity</label>
                                 <input class="input-field" type="number" min="1" name="print_quantity" value="{{ $order->print_quantity }}" required>
+                                <div class="company-sub-name" style="margin:-8px 0 12px">
+                                    Saving will sync this order to {{ number_format($order->print_quantity) }} generated USSD codes. Quantity changes add codes or remove unused extras.
+                                </div>
                                 <label class="form-label">Printer Vendor</label>
                                 <input class="input-field" name="printer_vendor" value="{{ $order->printer_vendor }}">
                                 <div class="form-row-2">
@@ -346,9 +364,25 @@
                                     <div class="activity-meta-row"><span>Product</span><strong>{{ $order->batch?->product?->name ?? 'No product' }}</strong></div>
                                     <div class="activity-meta-row"><span>Vendor</span><strong>{{ $order->printer_vendor ?? 'Not assigned' }}</strong></div>
                                     <div class="activity-meta-row"><span>Status</span><strong>{{ ucfirst($order->status) }}</strong></div>
+                                    <div class="activity-meta-row"><span>USSD Codes</span><strong>{{ number_format($order->label_codes_count) }} / {{ number_format($order->print_quantity) }}</strong></div>
                                     <div class="activity-meta-row"><span>Delivery</span><strong>{{ $order->delivery_date?->format('M j, Y') ?? 'No date' }}</strong></div>
                                     <div class="activity-meta-row"><span>Updated</span><strong>{{ $order->updated_at?->diffForHumans() ?? 'Not recorded' }}</strong></div>
                                 </div>
+                                <div class="role-preview">
+                                    <div class="role-preview-title">Sample USSD Codes</div>
+                                    <div class="role-preview-list">
+                                        @forelse ($order->labelCodes()->oldest('id')->take(8)->get() as $labelCode)
+                                            <span>{{ $labelCode->formattedCode() }} · {{ $labelCode->status }}</span>
+                                        @empty
+                                            <span>No codes generated yet. Save this order to sync codes.</span>
+                                        @endforelse
+                                    </div>
+                                </div>
+                                <div class="form-row-2" style="margin-top:14px">
+                                    <a class="btn-share" href="{{ route('active8.page', ['page' => 'label-codes', 'code_order' => $order->id]) }}" style="width:100%;justify-content:center">View USSD Codes</a>
+                                    <a class="btn-learn" href="{{ route('ussd.test') }}" style="width:100%;justify-content:center">Test USSD</a>
+                                </div>
+                                <a class="btn-share" href="{{ route('label-orders.codes.export', $order) }}" style="width:100%;justify-content:center;margin-top:14px">Download Print CSV</a>
                                 <div class="role-preview" data-static-label="{{ $order->label_type }}"></div>
                                 @if ($order->notes)
                                     <div class="activity-meta-row" style="align-items:flex-start"><span>Notes</span><strong>{{ $order->notes }}</strong></div>
@@ -362,7 +396,8 @@
                             <div class="onboarding-steps" style="grid-template-columns:1fr;border:1px solid var(--gray-200);border-radius:var(--radius);margin:16px 0 0;overflow:hidden">
                                 <div class="onboarding-step"><div class="step-num done">1</div><div style="flex:1"><div class="step-title active" style="text-decoration:none;color:var(--gray-900)">Approve batch</div><div class="step-sub">Confirm product details, QA status, and batch quantity.</div></div></div>
                                 <div class="onboarding-step"><div class="step-num">2</div><div style="flex:1"><div class="step-title active">Attach QR</div><div class="step-sub">One secure QR verification URL is printed across the batch.</div></div></div>
-                                <div class="onboarding-step"><div class="step-num">3</div><div style="flex:1"><div class="step-title active">Track delivery</div><div class="step-sub">Follow vendor, print quantity, delivery date, and order status.</div></div></div>
+                                <div class="onboarding-step"><div class="step-num">3</div><div style="flex:1"><div class="step-title active">Generate USSD codes</div><div class="step-sub">Every printed label receives one unique code that can be checked by USSD.</div></div></div>
+                                <div class="onboarding-step"><div class="step-num">4</div><div style="flex:1"><div class="step-title active">Track delivery</div><div class="step-sub">Follow vendor, print quantity, delivery date, and order status.</div></div></div>
                             </div>
                         </div>
                     </div>

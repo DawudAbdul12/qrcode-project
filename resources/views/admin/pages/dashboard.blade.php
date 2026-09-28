@@ -104,7 +104,7 @@
                                 <a class="premium-link" href="{{ route('active8.page', 'batches') }}">Manage batches</a>
                             </div>
                             <div class="premium-table-wrap">
-                                <table class="premium-table">
+                                <table class="premium-table" data-auto-paginate data-auto-paginate-label="batches" data-auto-paginate-per-page="5">
                                     <thead>
                                         <tr>
                                             <th>Batch</th>
@@ -140,7 +140,7 @@
                                 <a class="premium-link" href="{{ route('active8.page', 'scan-logs') }}">Open logs</a>
                             </div>
                             <div class="premium-table-wrap">
-                                <table class="premium-table">
+                                <table class="premium-table" data-auto-paginate data-auto-paginate-label="scans" data-auto-paginate-per-page="5">
                                     <thead>
                                         <tr>
                                             <th>Result</th>

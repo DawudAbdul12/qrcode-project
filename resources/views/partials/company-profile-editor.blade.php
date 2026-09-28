@@ -235,7 +235,7 @@
                                     </div>
                                 </section>
                             </div>
-                            <div class="phone-public-footer" data-preview-footer>Secured by Active8 batch verification</div>
+                            <div class="phone-public-footer" data-preview-footer>Secured by <img src="{{ asset('images/active8-logo.png') }}" alt="Active8"> batch verification</div>
                         </div>
                         <span class="phone-public-whatsapp"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-11.9 7L4 20l1.5-4A8 8 0 1 1 20 11.5Z"/><path d="M9 8c.4 3 2 4.6 5 5"/></svg></span>
                     </div>

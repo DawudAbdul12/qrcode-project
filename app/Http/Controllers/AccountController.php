@@ -40,6 +40,7 @@ class AccountController extends Controller
 
         $user->forceFill([
             'password' => Hash::make($data['password']),
+            'must_reset_password' => false,
         ])->save();
 
         return redirect()

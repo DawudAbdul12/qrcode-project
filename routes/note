@@ -483,6 +483,268 @@ Batch: manufacturing date, expiry, recall state, QA status, certificate, and QR 
 
 Demo owner: admin@example.com / password
 
+Added demo company owner seed:- owner@akomanaturals.test
+- password: password
+
 Username: Lydia-Ankumah
 
 Password: %NTvY30h0
+
+SECOND VERSION
+
+PHASE 1 System Architecture Prompt
+
+We are updating our Laravel anti-counterfeit QR verification platform.
+
+Current system:
+
+-   Admin creates companies
+-   Admin creates products
+-   Admin creates batches
+-   Admin generates QR codes
+-   Customers scan QR codes to verify products
+-   Admin views scan logs and suspicious activity
+
+New requirements:
+
+1. Add unique verification codes for label orders.
+2. Each physical label should have a unique human-readable code that can be checked by USSD.
+3. Add USSD verification support, initially as a simulated endpoint before telecom integration.
+4. Add a company dashboard where companies can log in and manage/view their own products, batches, label orders, users, and verification logs.
+5. Admin should still control approvals and global management.
+
+Please propose a clean Laravel architecture, database changes, models, relationships, routes, controllers, policies, and phased implementation plan.
+
+PHASE 2 Database Design Prompt
+
+Design the database changes for a Laravel anti-counterfeit verification system.
+
+Existing tables:
+
+-   companies
+-   company_profiles
+-   products
+-   batches
+-   qr_codes
+-   scan_logs
+-   label_orders
+-   users
+
+New features:
+
+-   company users
+-   unique label codes per label order
+-   USSD verification
+-   verification logs shared between QR and USSD
+-   suspicious activity detection
+
+Requirements:
+
+-   A company can have many users.
+-   A label order can generate many unique label codes.
+-   A label code belongs to a company, product, batch, and label order.
+-   A label code can be verified by QR, USSD, or manual admin lookup.
+-   Every verification attempt must be logged, including invalid attempts.
+-   Codes must be hard to guess, unique, and printable.
+
+Suggest migrations, indexes, constraints, enum/status fields, and model relationships.
+
+PHASE 3
+
+Prompt 3: Company Dashboard Prompt
+
+Build a company dashboard for our Laravel anti-counterfeit platform.
+
+Company users should only see data belonging to their company.
+
+Pages needed:
+
+-   Company dashboard overview
+-   Products
+-   Batches
+-   Label orders
+-   Verification logs
+-   Suspicious activity
+-   Reports
+-   Company users
+-   Settings/profile
+
+Company users can:
+
+-   View products and batches
+-   Request label orders
+-   View generated label codes after approval
+-   Export reports
+-   Manage users if they are company_admin
+-   View QR and USSD verification logs
+
+Company users cannot:
+
+-   See other companies
+-   Approve their own label orders
+-   Access global admin pages
+-   Change fraud rules unless allowed
+
+Please design routes, middleware, policies, layout structure, navigation, and role permissions.
+
+PHASE 4
+Prompt 4: USSD Feature Prompt
+Add USSD verification to a Laravel anti-counterfeit platform.
+
+We need:
+
+-   A public endpoint for USSD provider callbacks
+-   A simulated USSD test page for local testing
+-   Code lookup by unique label code
+-   Short response messages for feature phones
+-   Verification logs for every attempt
+-   Suspicious flagging when a code is checked too many times
+-   Support for invalid, revoked, expired, recalled, and already-used codes
+
+Example customer flow:
+Customer dials *XXX*CODE#
+System checks the label code.
+System returns a short message showing whether the product is genuine or suspicious.
+
+Please implement models, routes, controller logic, validation, response formatting, logging, and tests.
+
+PHASE 5
+
+Prompt 5: Implementation Prompt
+
+Implement Phase 1 of the Laravel platform update.
+
+Scope:
+
+1. Add company ownership to users.
+2. Add company dashboard routes and middleware.
+3. Add label_codes table.
+4. Generate unique label codes for approved label orders.
+5. Add simulated USSD verification endpoint/page.
+6. Log QR and USSD verification attempts.
+7. Add company dashboard pages for products, batches, label orders, users, and verification logs.
+
+Keep the existing admin dashboard working.
+Use Laravel policies/middleware to prevent companies from accessing other companies’ data.
+Use focused tests for code generation, USSD verification, and company data isolation.
+
+Best V1 Build Order
+
+1. Add company users and roles.
+2. Add company dashboard shell.
+3. Add label code generation.
+4. Add verification logging model shared by QR and USSD.
+5. Add simulated USSD check.
+6. Add company reports/logs.
+7. Add admin approval workflow.
+8. Later connect real USSD provider.
+
+
+
+
+
+Yes, I think this is exactly the right direction.
+Right now the app has platform/admin screens that can see all companies. A business owner should instead log in and see only their own company’s activity: products, batches, label orders, USSD/QR verification logs, suspicious checks, and maybe company profile/settings.
+How to achieve it cleanly:
+1. Add company ownership to users
+   Add company_id to users, nullable for platform admins.
+   Example roles could become:
+   owner      = platform owner/admin, sees everything
+   admin      = platform admin/operator, sees everything or limited admin
+   company_owner = business owner, sees only their company
+   company_staff = optional future role, limited company access
+   Or keep owner/admin/operator, but add an account_type like platform vs company. I prefer the clearer role split.
+2. Add relationships
+   In User:
+   public function company()
+   {
+       return $this->belongsTo(Company::class);
+   }
+   
+   public function isCompanyUser(): bool
+   {
+       return filled($this->company_id);
+   }
+   In Company:
+   public function users()
+   {
+       return $this->hasMany(User::class);
+   }
+3. Create company dashboard routes
+   Something like:
+   Route::middleware(['auth', 'company.user'])->prefix('company')->group(function () {
+       Route::get('/dashboard', [CompanyDashboardController::class, 'index'])->name('company.dashboard');
+       Route::get('/products', [CompanyProductController::class, 'index'])->name('company.products');
+       Route::get('/batches', [CompanyBatchController::class, 'index'])->name('company.batches');
+       Route::get('/label-orders', [CompanyLabelOrderController::class, 'index'])->name('company.label-orders');
+       Route::get('/verifications', [CompanyVerificationController::class, 'index'])->name('company.verifications');
+   });
+4. Add middleware to enforce company access
+   company.user should block users without company_id, suspended users, or users trying to access another company’s data.
+   Every company dashboard query should be scoped like:
+   $company = auth()->user()->company;
+   
+   $products = Product::where('company_id', $company->id)->get();
+   
+   $batches = Batch::whereHas('product', fn ($query) =>
+       $query->where('company_id', $company->id)
+   )->get();
+   
+   $labelOrders = LabelOrder::where('company_id', $company->id)->get();
+   
+   $logs = ScanLog::whereHas('qrCode.batch.product', fn ($query) =>
+       $query->where('company_id', $company->id)
+   )->latest()->get();
+5. Redirect users after login based on role
+   Platform users go to:
+   /admin/dashboard
+   Company users go to:
+   /company/dashboard
+6. 
+Build a separate company layout
+   The business-owner dashboard should be simpler than admin:
+   Dashboard
+   Products
+   Batches
+   Label Orders
+   USSD Codes
+   Verification Logs
+   Suspicious Activity
+   Company Profile
+   Users, optional
+   The homepage metrics could show:
+   Total products
+   Active batches
+   Label orders
+   Total QR scans
+   Total USSD checks
+   Genuine verifications
+   Suspicious/invalid attempts
+   Recent verification activity
+   Most checked products
+
+
+7. Add policies/tests
+   Important tests:
+   company owner can see own dashboard
+   company owner cannot see another company’s products
+   company owner cannot access admin dashboard
+   platform admin can still access admin dashboard
+   suspended company user cannot login/use dashboard
+   verification logs are scoped to user company
+My suggested implementation order:
+1. Add company_id and company roles to users.
+2. Update user create/edit admin form so admins can assign a company.
+3. Add login redirect logic.
+4. Add company.user middleware.
+5. Build /company/dashboard first with read-only stats.
+6. Then add company products, batches, label orders, USSD codes, and verification logs.
+7. Add policies/tests to lock down cross-company access.
+This gives business owners a focused portal witho
+
+
+
+add pagination to all the tables
+
+
+there should be a toggle that will expand and collapse

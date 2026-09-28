@@ -49,8 +49,9 @@
         a { color:inherit; text-decoration:none; }
         button { font:inherit; }
         .sidebar { position:sticky; top:0; z-index:10; width:236px; min-width:236px; flex:0 0 236px; height:100vh; display:flex; flex-direction:column; overflow:hidden; border-right:1px solid var(--line); background:#fff; }
-        .sidebar-logo { display:flex; align-items:center; padding:20px 20px 16px; border-bottom:1px solid #f2f4f7; }
-        .active8-logo { color:var(--ink); font-size:22px; font-style:italic; font-weight:800; }
+        .sidebar-logo { min-height:72px; display:flex; align-items:center; padding:20px 20px 16px; border-bottom:1px solid #f2f4f7; }
+        .active8-logo { display:inline-flex; align-items:center; width:124px; }
+        .active8-logo img { display:block; width:100%; height:auto; }
         .sidebar-icons { display:flex; align-items:center; gap:10px; margin-left:auto; color:#98a2b3; }
         .sidebar-icons svg { width:15px; height:15px; flex-shrink:0; }
         .sidebar-nav { flex:1; overflow-y:auto; padding:12px; }
@@ -69,7 +70,7 @@
         .topbar,.hero,.panel,.stat { border:1px solid var(--line); background:var(--white); box-shadow:var(--shadow); }
         .topbar { position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 16px; border-radius:14px; }
         .brand,.actions,.hero-main,.meta,.tabs,.section-head,.avatar-row,.split,.stack,.socials { display:flex; align-items:center; gap:10px; }
-        .brand-mark { width:30px; height:30px; display:grid; place-items:center; border-radius:7px; background:var(--ink); color:#fff; font-size:11px; font-weight:900; }
+        .brand-logo-inline { display:block; width:94px; height:auto; flex-shrink:0; }
         .brand { min-width:0; }
         .brand strong { flex-shrink:0; font-size:13px; }
         .crumb { min-width:0; overflow:hidden; color:var(--muted); font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
@@ -115,6 +116,15 @@
         td strong { display:block; color:var(--ink); }
         td small { display:block; margin-top:3px; color:var(--muted); }
         .empty { padding:28px 16px; color:var(--muted); font-size:12px; text-align:center; }
+        .table-pagination { display:flex; align-items:center; justify-content:space-between; gap:14px; margin:14px 16px 16px; padding:12px; border:1px solid var(--line); border-radius:12px; background:linear-gradient(180deg,#fff,#f8fbff); color:var(--muted); font-size:12px; font-weight:850; box-shadow:0 10px 26px rgba(16,24,40,.045); }
+        .table-pagination > span:first-child { display:inline-flex; align-items:center; gap:8px; min-height:30px; }
+        .table-pagination > span:first-child::before { content:""; width:8px; height:8px; border-radius:999px; background:var(--blue); box-shadow:0 0 0 4px var(--blue-soft); }
+        .pager-actions { display:inline-flex; align-items:center; gap:7px; padding:3px; border:1px solid #eef2f6; border-radius:11px; background:#fff; }
+        .pager-actions > span { min-width:54px; height:30px; display:inline-flex; align-items:center; justify-content:center; padding:0 10px; border-radius:8px; background:var(--soft); color:#344054; font-size:12px; font-weight:900; white-space:nowrap; }
+        .pager-btn { width:30px; height:30px; display:inline-grid; place-items:center; border:1px solid transparent; border-radius:8px; background:#fff; color:#344054; cursor:pointer; font-size:15px; font-weight:900; line-height:1; transition:background .16s ease,border-color .16s ease,color .16s ease,transform .16s ease,box-shadow .16s ease; }
+        .pager-btn:hover:not(:disabled) { border-color:rgba(37,99,235,.28); background:var(--blue-soft); color:var(--blue); box-shadow:0 6px 16px rgba(37,99,235,.1); transform:translateY(-1px); }
+        .pager-btn:focus-visible { outline:3px solid rgba(37,99,235,.18); outline-offset:2px; }
+        .pager-btn:disabled { opacity:.45; cursor:not-allowed; }
         .progress { overflow:hidden; height:7px; border-radius:999px; background:#eef2f6; }
         .progress span { display:block; height:100%; border-radius:inherit; background:var(--blue); }
         .summary-list { display:grid; gap:0; }
@@ -151,7 +161,7 @@
         .mini-card span { display:block; color:var(--muted); font-size:10px; font-weight:900; text-transform:uppercase; }
         .mini-card strong { display:block; margin-top:6px; color:var(--ink); font-size:16px; }
         @media (max-width:1180px) { .stats { grid-template-columns:repeat(4,minmax(0,1fr)); } }
-        @media (max-width:850px) { body{height:auto;min-height:100vh;display:block;overflow:auto}.sidebar{position:relative;width:100%;height:auto;min-width:0;flex:0 0 auto}.sidebar-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.sidebar-footer{display:none}.workspace{max-width:none;overflow:visible}.shell{width:min(100% - 20px,680px);padding:14px 0 24px}.topbar,.hero-body{align-items:flex-start;flex-direction:column}.hero-actions{justify-content:flex-start}.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.profile-grid,.analytics-grid{grid-template-columns:1fr}.profile-card.wide{grid-column:auto}.actions .btn span{display:none}.cover{height:96px}.hero-body{padding:0 14px 14px}.hero-main{margin-top:-28px}.logo{width:68px;height:68px}.hero-copy{padding-top:31px}h1{font-size:20px}.meta{align-items:flex-start;flex-direction:column;gap:4px}.meta span + span::before{display:none} }
+        @media (max-width:850px) { body{height:auto;min-height:100vh;display:block;overflow:auto}.sidebar{position:relative;width:100%;height:auto;min-width:0;flex:0 0 auto}.sidebar-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.sidebar-footer{display:none}.workspace{max-width:none;overflow:visible}.shell{width:min(100% - 20px,680px);padding:14px 0 24px}.topbar,.hero-body{align-items:flex-start;flex-direction:column}.hero-actions{justify-content:flex-start}.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.profile-grid,.analytics-grid{grid-template-columns:1fr}.profile-card.wide{grid-column:auto}.actions .btn span{display:none}.cover{height:96px}.hero-body{padding:0 14px 14px}.hero-main{margin-top:-28px}.logo{width:68px;height:68px}.hero-copy{padding-top:31px}h1{font-size:20px}.meta{align-items:flex-start;flex-direction:column;gap:4px}.meta span + span::before{display:none}.table-pagination{align-items:flex-start;flex-direction:column}.pager-actions{max-width:100%;overflow-x:auto} }
     </style>
 </head>
 <body>
@@ -173,7 +183,7 @@
     </svg>
     <aside class="sidebar">
         <div class="sidebar-logo">
-            <span class="active8-logo">Active8</span>
+            <span class="active8-logo"><img src="{{ asset('images/active8-logo.png') }}" alt="Active8"></span>
             <div class="sidebar-icons"><svg><use href="#i-eye"></use></svg><svg><use href="#i-qr"></use></svg></div>
         </div>
         <nav class="sidebar-nav">
@@ -192,7 +202,7 @@
     <div class="workspace">
     <main class="shell">
         <header class="topbar">
-            <div class="brand"><div class="brand-mark">A8</div><strong>Active8</strong><span class="crumb">/ Companies / {{ $company->name }}</span></div>
+            <div class="brand"><img class="brand-logo-inline" src="{{ asset('images/active8-logo.png') }}" alt="Active8"><span class="crumb">/ Companies / {{ $company->name }}</span></div>
             <div class="actions">
                 <a class="btn" href="{{ route('active8.page', 'companies') }}"><svg><use href="#i-arrow"></use></svg><span>Companies</span></a>
                 <a class="btn primary" href="{{ route('active8.page', ['page' => 'company-profile', 'company' => $company->id]) }}"><svg><use href="#i-edit"></use></svg><span>Edit Profile</span></a>
@@ -240,7 +250,7 @@
                     <div>
                         <div class="panel">
                             <div class="panel-head"><div><div class="panel-title">Recent Batches</div><div class="panel-sub">Latest production records and QR readiness.</div></div><a class="btn" href="{{ route('companies.show', ['company' => $company, 'tab' => 'batches']) }}">View All</a></div>
-                            <div class="table-wrap"><table><thead><tr><th>Batch</th><th>Product</th><th>QA</th><th>QR</th><th>Quantity</th></tr></thead><tbody>
+                            <div class="table-wrap"><table data-auto-paginate data-auto-paginate-label="batches" data-auto-paginate-per-page="5"><thead><tr><th>Batch</th><th>Product</th><th>QA</th><th>QR</th><th>Quantity</th></tr></thead><tbody>
                             @forelse($recentBatches as $batch)<tr><td><strong>{{ $batch->batch_number }}</strong><small>{{ $batch->created_at->format('M j, Y') }}</small></td><td>{{ $batch->product?->name }}</td><td><span class="pill {{ $batch->qa_status }}">{{ $batch->qa_status }}</span></td><td>{{ $batch->qrCode ? 'Ready' : 'Missing' }}</td><td>{{ number_format($batch->quantity) }}</td></tr>@empty<tr><td colspan="5" class="empty">No batches have been registered yet.</td></tr>@endforelse
                             </tbody></table></div>
                         </div>
@@ -284,11 +294,11 @@
                     </aside>
                 </div>
             @elseif($tab === 'products')
-                <div class="panel"><div class="panel-head"><div><div class="panel-title">Products</div><div class="panel-sub">Registered products owned by {{ $company->name }}.</div></div><a class="btn primary" href="{{ route('active8.page', ['page' => 'products', 'company' => $company->id]) }}">Manage Products</a></div><div class="table-wrap"><table><thead><tr><th>Product</th><th>SKU</th><th>Category</th><th>Batches</th><th>Status</th></tr></thead><tbody>
+                <div class="panel"><div class="panel-head"><div><div class="panel-title">Products</div><div class="panel-sub">Registered products owned by {{ $company->name }}.</div></div><a class="btn primary" href="{{ route('active8.page', ['page' => 'products', 'company' => $company->id]) }}">Manage Products</a></div><div class="table-wrap"><table data-auto-paginate data-auto-paginate-label="products" data-auto-paginate-per-page="10"><thead><tr><th>Product</th><th>SKU</th><th>Category</th><th>Batches</th><th>Status</th></tr></thead><tbody>
                 @forelse($products as $product)<tr><td><strong>{{ $product->name }}</strong><small>{{ Str::limit($product->description, 54) ?: 'No description' }}</small></td><td>{{ $product->sku ?? 'Not listed' }}</td><td>{{ $product->productCategory?->name ?? $product->category ?? 'Uncategorized' }}</td><td>{{ number_format($product->batches_count) }}</td><td><span class="pill {{ $product->status }}">{{ $product->status }}</span></td></tr>@empty<tr><td colspan="5" class="empty">No products have been registered yet.</td></tr>@endforelse
                 </tbody></table></div></div>
             @elseif($tab === 'batches')
-                <div class="panel"><div class="panel-head"><div><div class="panel-title">Batches & QR Codes</div><div class="panel-sub">Production batches, QA status, expiry dates, and verification QR readiness.</div></div><a class="btn primary" href="{{ route('active8.page', ['page' => 'batches', 'company' => $company->id]) }}">Manage Batches</a></div><div class="table-wrap"><table><thead><tr><th>Batch</th><th>Product</th><th>Status</th><th>Expiry</th><th>QR Code</th><th>Labels</th></tr></thead><tbody>
+                <div class="panel"><div class="panel-head"><div><div class="panel-title">Batches & QR Codes</div><div class="panel-sub">Production batches, QA status, expiry dates, and verification QR readiness.</div></div><a class="btn primary" href="{{ route('active8.page', ['page' => 'batches', 'company' => $company->id]) }}">Manage Batches</a></div><div class="table-wrap"><table data-auto-paginate data-auto-paginate-label="batches" data-auto-paginate-per-page="10"><thead><tr><th>Batch</th><th>Product</th><th>Status</th><th>Expiry</th><th>QR Code</th><th>Labels</th></tr></thead><tbody>
                 @forelse($batches as $batch)<tr><td><strong>{{ $batch->batch_number }}</strong><small>{{ $batch->production_location ?? 'No production location' }}</small></td><td>{{ $batch->product?->name }}</td><td><span class="pill {{ $batch->status }}">{{ $batch->status }}</span></td><td>{{ $batch->expiry_date?->format('M j, Y') ?? 'Not listed' }}</td><td>@if($batch->qrCode)<span class="pill {{ $batch->qrCode->isExpired() ? 'expired' : $batch->qrCode->status }}">{{ $batch->qrCode->isExpired() ? 'expired' : $batch->qrCode->status }}</span><small>{{ $batch->qrCode->expires_at?->format('M j, Y') ?? 'No QR expiry' }}</small>@else Not generated @endif</td><td>{{ number_format($batch->labelOrders->sum('print_quantity')) }}</td></tr>@empty<tr><td colspan="6" class="empty">No batches yet. Create a batch from the main Batches console to generate its QR lifecycle.</td></tr>@endforelse
                 </tbody></table></div></div>
             @elseif($tab === 'profile')
@@ -302,7 +312,7 @@
                     <div class="profile-card wide"><div class="label">Social Links</div><div class="socials">@forelse(($profile?->social_links ?? []) as $social)<a class="social" href="{{ $social['url'] }}" target="_blank" rel="noopener noreferrer">{{ $social['label'] }}</a>@empty<span class="value">No social links configured</span>@endforelse</div></div>
                 </div></div><aside><div class="panel"><div class="panel-head"><div><div class="panel-title">Public Profile</div><div class="panel-sub">Brand assets used on scan results.</div></div></div><div class="panel-body summary-list"><div class="summary-row"><span>Logo</span><strong>{{ $profile?->logo_path ? 'Uploaded' : 'Needed' }}</strong></div><div class="summary-row"><span>Cover</span><strong>{{ $profile?->cover_image_path ? 'Uploaded' : 'Needed' }}</strong></div><div class="summary-row"><span>Layout</span><strong>{{ ucfirst($profile?->layout_style ?? 'default') }}</strong></div><div class="summary-row"><span>Platform branding</span><strong>{{ $profile?->show_platform_branding ? 'Visible' : 'Hidden' }}</strong></div></div></div></aside></div>
             @elseif($tab === 'analytics')
-                <div class="panel"><div class="panel-head"><div><div class="panel-title">Verification Analytics</div><div class="panel-sub">Company-level scan health and customer verification outcomes.</div></div><a class="btn primary" href="{{ route('active8.page', ['page' => 'scan-analytics', 'company' => $company->id]) }}">Advanced Analytics</a></div><div class="panel-body"><div class="analytics-grid"><div class="analytics-card"><span>Total scans</span><strong>{{ number_format($scanLogs->count()) }}</strong></div><div class="analytics-card"><span>Genuine rate</span><strong>{{ $genuineRate }}%</strong></div><div class="analytics-card"><span>Flagged scans</span><strong>{{ number_format($flaggedScans) }}</strong></div></div></div><div class="table-wrap"><table><thead><tr><th>Outcome</th><th>Product</th><th>Batch</th><th>Location</th><th>Device</th><th>Scanned</th></tr></thead><tbody>
+                <div class="panel"><div class="panel-head"><div><div class="panel-title">Verification Analytics</div><div class="panel-sub">Company-level scan health and customer verification outcomes.</div></div><a class="btn primary" href="{{ route('active8.page', ['page' => 'scan-analytics', 'company' => $company->id]) }}">Advanced Analytics</a></div><div class="panel-body"><div class="analytics-grid"><div class="analytics-card"><span>Total scans</span><strong>{{ number_format($scanLogs->count()) }}</strong></div><div class="analytics-card"><span>Genuine rate</span><strong>{{ $genuineRate }}%</strong></div><div class="analytics-card"><span>Flagged scans</span><strong>{{ number_format($flaggedScans) }}</strong></div></div></div><div class="table-wrap"><table data-auto-paginate data-auto-paginate-label="scans" data-auto-paginate-per-page="10"><thead><tr><th>Outcome</th><th>Product</th><th>Batch</th><th>Location</th><th>Device</th><th>Scanned</th></tr></thead><tbody>
                 @forelse($scanLogs->take(30) as $scan)<tr><td><span class="pill {{ $scan->status_result }}">{{ $scan->status_result }}</span></td><td>{{ $scan->qrCode?->batch?->product?->name ?? 'Unknown' }}</td><td>{{ $scan->qrCode?->batch?->batch_number ?? 'Unknown' }}</td><td>{{ collect([$scan->city,$scan->country])->filter()->implode(', ') ?: 'Unknown' }}</td><td>{{ ucfirst($scan->device_type ?? 'Unknown') }}</td><td>{{ $scan->scanned_at->format('M j, Y H:i') }}</td></tr>@empty<tr><td colspan="6" class="empty">No verification scans recorded yet.</td></tr>@endforelse
                 </tbody></table></div></div>
             @else
@@ -311,5 +321,49 @@
         </section>
     </main>
     </div>
+    <script>
+        document.querySelectorAll('[data-auto-paginate]').forEach((table) => {
+            const rows = Array.from(table.querySelectorAll('tbody tr'));
+            const perPage = Number(table.dataset.autoPaginatePerPage || 10);
+            const label = table.dataset.autoPaginateLabel || 'rows';
+
+            if (rows.length <= perPage) return;
+
+            let currentPage = 1;
+            const totalPages = Math.ceil(rows.length / perPage);
+            const pager = document.createElement('div');
+            pager.className = 'table-pagination';
+            pager.innerHTML = `<span data-page-summary></span><div class="pager-actions"><button class="pager-btn" type="button" data-page-prev aria-label="Previous page">‹</button><span data-page-current>1</span><button class="pager-btn" type="button" data-page-next aria-label="Next page">›</button></div>`;
+            table.closest('.table-wrap').insertAdjacentElement('afterend', pager);
+
+            const summary = pager.querySelector('[data-page-summary]');
+            const pageCurrent = pager.querySelector('[data-page-current]');
+            const previous = pager.querySelector('[data-page-prev]');
+            const next = pager.querySelector('[data-page-next]');
+            const render = () => {
+                const start = (currentPage - 1) * perPage;
+                const end = start + perPage;
+
+                rows.forEach((row, index) => {
+                    row.style.display = index >= start && index < end ? '' : 'none';
+                });
+
+                summary.textContent = `Showing ${start + 1}-${Math.min(end, rows.length)} of ${rows.length} ${label}`;
+                pageCurrent.textContent = `${currentPage} / ${totalPages}`;
+                previous.disabled = currentPage <= 1;
+                next.disabled = currentPage >= totalPages;
+            };
+
+            previous.addEventListener('click', () => {
+                currentPage = Math.max(1, currentPage - 1);
+                render();
+            });
+            next.addEventListener('click', () => {
+                currentPage = Math.min(totalPages, currentPage + 1);
+                render();
+            });
+            render();
+        });
+    </script>
 </body>
 </html>

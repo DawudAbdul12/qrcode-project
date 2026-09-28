@@ -11,6 +11,7 @@ use App\Models\ProductCategory;
 use App\Models\QrCode;
 use App\Models\ScanLog;
 use App\Models\User;
+use App\Services\LabelCodeGenerator;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -73,9 +74,11 @@ class DatabaseSeeder extends Seeder
         $companyData = $this->companies();
         $allBatches = collect();
         $allQrCodes = collect();
+        $firstCompany = null;
 
         foreach ($companyData as $companyItem) {
             $company = Company::query()->create($companyItem['company']);
+            $firstCompany ??= $company;
             $this->seedAssets($companyItem);
 
             $company->profile()->create(array_merge($companyItem['profile'], [
@@ -162,7 +165,7 @@ class DatabaseSeeder extends Seeder
                         'show_external_link' => $batchItem['qr_status'] === 'active',
                     ]);
 
-                    LabelOrder::query()->create([
+                    $labelOrder = LabelOrder::query()->create([
                         'company_id' => $company->id,
                         'batch_id' => $batch->id,
                         'label_type' => $batchItem['label_type'],
@@ -173,11 +176,26 @@ class DatabaseSeeder extends Seeder
                         'delivery_date' => Carbon::parse($batchItem['manufacture_date'])->addDays(10),
                         'notes' => 'Demo label order for '.$batch->batch_number.' with batch-specific QR security seal.',
                     ]);
+                    app(LabelCodeGenerator::class)->reconcile($labelOrder->load('company'));
 
                     $allBatches->push($batch);
                     $allQrCodes->push($qrCode);
                 }
             }
+        }
+
+        if ($firstCompany) {
+            User::query()->updateOrCreate(
+                ['email' => 'owner@akomanaturals.test'],
+                [
+                    'company_id' => $firstCompany->id,
+                    'name' => 'Ama Serwaa Mensah',
+                    'password' => Hash::make('password'),
+                    'role' => 'company_owner',
+                    'status' => 'active',
+                    'last_login_at' => now()->subHours(6),
+                ],
+            );
         }
 
         $this->seedScanLogs($allQrCodes);

@@ -51,11 +51,16 @@
     ];
     $labelOrders = $labelOrders ?? collect();
     $recentLabelOrders = $recentLabelOrders ?? $labelOrders->take(3);
+    $labelCodeSummary = $labelCodeSummary ?? ['total' => 0, 'unused' => 0, 'verified' => 0, 'suspicious' => 0];
+    $labelCodes = $labelCodes ?? collect();
+    $labelCodeFilters = $labelCodeFilters ?? ['search' => '', 'status' => 'all', 'order' => 'all'];
+    $labelOrderOptions = $labelOrderOptions ?? $labelOrders->take(50);
+    $selectedLabelOrder = $selectedLabelOrder ?? null;
     $recentActivityLogs = $recentActivityLogs ?? collect();
     $activityFilters = $activityFilters ?? ['company' => 'all', 'batch' => 'all', 'event' => 'all'];
     $activityEvents = $activityEvents ?? collect();
     $users = $users ?? collect();
-    $userSummary = $userSummary ?? ['total' => 0, 'active' => 0, 'owners' => 0, 'operators' => 0];
+    $userSummary = $userSummary ?? ['total' => 0, 'active' => 0, 'owners' => 0, 'operators' => 0, 'company_users' => 0];
     $featuredQrCode = $recentBatches->first(fn ($batch) => $batch->qrCode !== null)?->qrCode
         ?? $batches->first(fn ($batch) => $batch->qrCode !== null)?->qrCode;
     $dashboardBatchTotal = max($batches->count(), 1);
@@ -114,6 +119,7 @@
         ['key' => 'scan-logs', 'label' => 'Scan Logs', 'icon' => 'link'],
         ['key' => 'audit-trail', 'label' => 'Audit Trail', 'icon' => 'activity'],
         ['key' => 'label-orders', 'label' => 'Label Orders', 'icon' => 'qr'],
+        ['key' => 'label-codes', 'label' => 'USSD Codes', 'icon' => 'code'],
     ];
 
     $editorTabs = [
@@ -221,13 +227,28 @@
         <symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.18 2A19.8 19.8 0 0 1 2.1 4.18 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.77.62 2.61a2 2 0 0 1-.45 2.11L8 9.7a16 16 0 0 0 6.3 6.3l1.26-1.27a2 2 0 0 1 2.11-.45c.84.29 1.71.5 2.61.62A2 2 0 0 1 22 16.9Z" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
     </svg>
 
-    <aside class="sidebar">
+    <header class="admin-mobile-bar">
+        <a class="active8-logo" href="{{ route('active8.page', 'dashboard') }}" aria-label="Go to admin dashboard"><img src="{{ asset('images/active8-logo.png') }}" alt="Active8"></a>
+        <button class="admin-menu-button" type="button" aria-label="Open admin menu" aria-controls="admin-sidebar" aria-expanded="false" data-admin-menu-open>
+            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+        </button>
+    </header>
+    <button class="admin-menu-backdrop" type="button" aria-label="Close admin menu" data-admin-menu-close></button>
+
+    <aside class="sidebar" id="admin-sidebar" aria-label="Admin menu">
         <div class="sidebar-logo">
-            <span class="active8-logo">Active8</span>
+            <a class="active8-logo" href="{{ route('active8.page', 'dashboard') }}" aria-label="Go to admin dashboard"><img src="{{ asset('images/active8-logo.png') }}" alt="Active8"></a>
             <div class="sidebar-icons">
                 <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                 <svg width="15" height="15"><use href="#i-qr"></use></svg>
             </div>
+            <button class="admin-menu-close" type="button" aria-label="Close admin menu" data-admin-menu-close>
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </button>
         </div>
         <nav class="sidebar-nav">
             @foreach ($navItems as $item)
@@ -268,6 +289,7 @@
         @include('admin.pages.scan-logs')
         @include('admin.pages.audit-trail')
         @include('admin.pages.label-orders')
+        @include('admin.pages.label-codes')
         @include('admin.pages.accounts')
         @include('admin.pages.account')
 

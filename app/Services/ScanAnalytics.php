@@ -471,7 +471,7 @@ class ScanAnalytics
         return $logs
             ->filter(fn (ScanLog $scan) => in_array($scan->status_result, ['invalid', 'suspicious', 'revoked', 'expired', 'recalled'], true))
             ->sortByDesc('scanned_at')
-            ->take(8)
+            ->take(40)
             ->map(fn (ScanLog $scan) => [
                 'id' => $scan->id,
                 'status' => $scan->status_result,

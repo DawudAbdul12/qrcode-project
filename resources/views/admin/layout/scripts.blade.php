@@ -1,4 +1,82 @@
     <script>
+        const adminSidebar = document.getElementById('admin-sidebar');
+        const adminMenuOpen = document.querySelector('[data-admin-menu-open]');
+        const adminMenuCloseButtons = document.querySelectorAll('[data-admin-menu-close]');
+        const setAdminMenuOpen = (isOpen) => {
+            document.body.classList.toggle('admin-menu-open', isOpen);
+            adminSidebar?.classList.toggle('is-open', isOpen);
+            adminMenuOpen?.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        };
+
+        adminMenuOpen?.addEventListener('click', () => setAdminMenuOpen(true));
+        adminMenuCloseButtons.forEach((button) => button.addEventListener('click', () => setAdminMenuOpen(false)));
+        adminSidebar?.querySelectorAll('a').forEach((link) => {
+            link.addEventListener('click', () => setAdminMenuOpen(false));
+        });
+
+        document.querySelectorAll('.table-toolbar').forEach((toolbar, index) => {
+            const filterRow = toolbar.querySelector('.table-filter-row');
+            if (!filterRow || toolbar.querySelector('[data-table-filter-toggle]')) return;
+
+            const filterId = filterRow.id || `table-filters-${index + 1}`;
+            filterRow.id = filterId;
+            toolbar.classList.add('has-collapsible-filters');
+
+            const toggle = document.createElement('button');
+            toggle.className = 'table-filter-toggle';
+            toggle.type = 'button';
+            toggle.dataset.tableFilterToggle = '';
+            toggle.setAttribute('aria-controls', filterId);
+            toggle.setAttribute('aria-expanded', 'false');
+            toggle.innerHTML = `
+                <svg width="15" height="15" aria-hidden="true"><use href="#i-filter"></use></svg>
+                <span data-table-filter-toggle-label>Show filters</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            `;
+
+            toolbar.insertBefore(toggle, filterRow);
+
+            const toggleLabel = toggle.querySelector('[data-table-filter-toggle-label]');
+            const activeFilterCount = () => {
+                let count = 0;
+
+                filterRow.querySelectorAll('select').forEach((select) => {
+                    if (select.name === 'per_page') return;
+                    if (select.value && select.value !== 'all') count += 1;
+                });
+
+                filterRow.querySelectorAll('input').forEach((input) => {
+                    if (['hidden', 'submit', 'button'].includes(input.type)) return;
+                    if (input.value.trim() !== '') count += 1;
+                });
+
+                filterRow.querySelectorAll('details[data-order-current]').forEach((picker) => {
+                    if (picker.dataset.orderCurrent && picker.dataset.orderCurrent !== 'all') count += 1;
+                });
+
+                return count;
+            };
+
+            const setFilterRowOpen = (isOpen) => {
+                toolbar.classList.toggle('filters-open', isOpen);
+                toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                const count = activeFilterCount();
+                if (toggleLabel) {
+                    toggleLabel.textContent = `${isOpen ? 'Hide' : 'Show'} filters${count ? ` (${count})` : ''}`;
+                }
+            };
+
+            toggle.addEventListener('click', () => {
+                setFilterRowOpen(! toolbar.classList.contains('filters-open'));
+            });
+
+            filterRow.addEventListener('input', () => setFilterRowOpen(toolbar.classList.contains('filters-open')));
+            filterRow.addEventListener('change', () => setFilterRowOpen(toolbar.classList.contains('filters-open')));
+            setFilterRowOpen(activeFilterCount() > 0);
+        });
+
         const editorMeta = {
             content: { title: 'Content', sub: 'Control the public trust content customers see after scanning a batch QR code.' },
             about: { title: 'About', sub: 'Manage the official company identity shown on the verification page.' },
@@ -223,13 +301,16 @@
             owner: ['Full user and settings access', 'Manage companies, products, and batches', 'Review scan analytics and operations'],
             admin: ['Manage companies and product operations', 'Create batches and QR workflows', 'Review reports and scan logs'],
             operator: ['Handle products and batches', 'Review scan logs', 'Limited settings access'],
+            company_owner: ['Monitor one company dashboard', 'Review products, batches, label orders, and verification logs', 'Track suspicious customer checks'],
+            company_staff: ['View assigned company operations', 'Monitor verification activity', 'Support label and batch reviews'],
         };
+        const formatRoleName = (role) => role.split('_').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
         const renderRolePreview = (preview, role) => {
             if (!preview) return;
 
             const permissions = rolePreviewContent[role] ?? rolePreviewContent.operator;
             preview.innerHTML = `
-                <div class="role-preview-title">${role.charAt(0).toUpperCase() + role.slice(1)} permissions</div>
+                <div class="role-preview-title">${formatRoleName(role)} permissions</div>
                 <div class="role-preview-list">
                     ${permissions.map((permission) => `<span>${permission}</span>`).join('')}
                 </div>
@@ -2202,6 +2283,124 @@
             });
         });
 
+        const printFlowModal = document.getElementById('print-flow-modal');
+        const openPrintFlowModal = () => {
+            printFlowModal?.classList.add('active');
+            printFlowModal?.setAttribute('aria-hidden', 'false');
+        };
+        const closePrintFlowModal = () => {
+            printFlowModal?.classList.remove('active');
+            printFlowModal?.setAttribute('aria-hidden', 'true');
+        };
+
+        document.querySelectorAll('[data-print-flow-open]').forEach((button) => {
+            button.addEventListener('click', openPrintFlowModal);
+        });
+        document.querySelectorAll('[data-print-flow-close]').forEach((button) => {
+            button.addEventListener('click', closePrintFlowModal);
+        });
+
+        document.querySelectorAll('[data-order-live-picker]').forEach((picker) => {
+            const input = picker.querySelector('[data-order-live-input]');
+            const results = picker.querySelector('[data-order-live-results]');
+            const searchUrl = picker.dataset.orderSearchUrl;
+            const currentOrder = picker.dataset.orderCurrent ?? 'all';
+            let searchTimer = null;
+            let activeRequest = 0;
+
+            if (!input || !results || !searchUrl) return;
+
+            const escapeHtml = (value) => String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+
+            const renderOrderResults = (orders, query) => {
+                const countLabel = orders.length === 1 ? '1 shown' : `${orders.length} shown`;
+                const allCopy = query ? 'Filtered by search text' : 'Latest print jobs';
+                const allActive = currentOrder === 'all' ? ' active' : '';
+                const rows = orders.map((order) => {
+                    const active = String(order.id) === String(currentOrder) ? ' active' : '';
+
+                    return `
+                        <button class="order-option${active}" type="submit" name="code_order" value="${escapeHtml(order.id)}">
+                            <span>
+                                <strong>${escapeHtml(order.title)}</strong>
+                                <small>${escapeHtml(order.subtitle)}</small>
+                            </span>
+                            <em>${escapeHtml(order.codes)}</em>
+                        </button>
+                    `;
+                }).join('');
+
+                results.innerHTML = `
+                    <button class="order-option${allActive}" type="submit" name="code_order" value="all">
+                        <span>
+                            <strong>All matching orders</strong>
+                            <small>${allCopy}</small>
+                        </span>
+                        <em>${countLabel}</em>
+                    </button>
+                    ${rows || `
+                        <button class="order-option" type="button" disabled>
+                            <span>
+                                <strong>No matching orders</strong>
+                                <small>Try another order, company, product, batch, or printer.</small>
+                            </span>
+                            <em>0 codes</em>
+                        </button>
+                    `}
+                `;
+            };
+
+            const fetchOrders = () => {
+                const query = input.value.trim();
+                const requestId = ++activeRequest;
+                const url = new URL(searchUrl, window.location.origin);
+
+                if (query) {
+                    url.searchParams.set('q', query);
+                }
+
+                fetch(url, {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin',
+                })
+                    .then((response) => response.ok ? response.json() : Promise.reject(response))
+                    .then((payload) => {
+                        if (requestId !== activeRequest) return;
+                        renderOrderResults(payload.results ?? [], query);
+                    })
+                    .catch(() => {
+                        if (requestId !== activeRequest) return;
+                        results.innerHTML = `
+                            <button class="order-option" type="button" disabled>
+                                <span>
+                                    <strong>Order search unavailable</strong>
+                                    <small>Use Find to refresh the page with your search.</small>
+                                </span>
+                                <em>Retry</em>
+                            </button>
+                        `;
+                    });
+            };
+
+            input.addEventListener('input', () => {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(fetchOrders, 180);
+            });
+        });
+
+        document.addEventListener('click', (event) => {
+            document.querySelectorAll('.order-picker[open]').forEach((picker) => {
+                if (!picker.contains(event.target)) {
+                    picker.removeAttribute('open');
+                }
+            });
+        });
+
         clearScanFilters?.addEventListener('click', () => {
             if (scanSearchInput) scanSearchInput.value = '';
             if (scanStatusFilter) scanStatusFilter.value = 'all';
@@ -2264,7 +2463,9 @@
             closeBatchDrawer();
             closeOrderDrawer();
             closeScanDrawer();
+            closePrintFlowModal();
             closeDeleteAlert();
+            setAdminMenuOpen(false);
 
             document.querySelectorAll('[data-date-dropdown].open').forEach((wrap) => {
                 wrap.classList.remove('open');
@@ -2279,6 +2480,59 @@
                 button.textContent = 'Copied';
                 setTimeout(() => button.textContent = text, 1200);
             });
+        });
+
+        document.querySelectorAll('[data-auto-paginate]').forEach((table) => {
+            const rows = Array.from(table.querySelectorAll('tbody tr'));
+            const perPage = Number(table.dataset.autoPaginatePerPage || 8);
+            const label = table.dataset.autoPaginateLabel || 'rows';
+
+            if (rows.length <= perPage) return;
+
+            let currentPage = 1;
+            const pager = document.createElement('div');
+            pager.className = 'table-pagination';
+            pager.innerHTML = `
+                <span data-auto-page-summary></span>
+                <div class="pager-actions">
+                    <button class="pager-btn" type="button" data-auto-page-prev aria-label="Previous page">‹</button>
+                    <span data-auto-page-current>1</span>
+                    <button class="pager-btn" type="button" data-auto-page-next aria-label="Next page">›</button>
+                </div>
+            `;
+
+            const host = table.closest('.premium-table-wrap, .admin-table-wrap') || table;
+            host.insertAdjacentElement('afterend', pager);
+
+            const summary = pager.querySelector('[data-auto-page-summary]');
+            const pageCurrent = pager.querySelector('[data-auto-page-current]');
+            const previous = pager.querySelector('[data-auto-page-prev]');
+            const next = pager.querySelector('[data-auto-page-next]');
+            const totalPages = Math.ceil(rows.length / perPage);
+
+            const render = () => {
+                const start = (currentPage - 1) * perPage;
+                const end = start + perPage;
+
+                rows.forEach((row, index) => {
+                    row.style.display = index >= start && index < end ? '' : 'none';
+                });
+
+                summary.textContent = `Showing ${start + 1}-${Math.min(end, rows.length)} of ${rows.length} ${label}`;
+                pageCurrent.textContent = `${currentPage} / ${totalPages}`;
+                previous.disabled = currentPage <= 1;
+                next.disabled = currentPage >= totalPages;
+            };
+
+            previous.addEventListener('click', () => {
+                currentPage = Math.max(1, currentPage - 1);
+                render();
+            });
+            next.addEventListener('click', () => {
+                currentPage = Math.min(totalPages, currentPage + 1);
+                render();
+            });
+            render();
         });
 
         const xLabelsEl = document.getElementById('a-x-labels');

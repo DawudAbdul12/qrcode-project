@@ -11,7 +11,10 @@ class UserController extends Controller
 {
     public function store(Request $request): RedirectResponse
     {
-        User::query()->create($this->validatedData($request));
+        User::query()->create([
+            ...$this->validatedData($request),
+            'must_reset_password' => true,
+        ]);
 
         return redirect()
             ->route('active8.page', 'accounts')
@@ -107,12 +110,19 @@ class UserController extends Controller
             ? ['nullable', 'string', 'min:8']
             : ['required', 'string', 'min:8'];
 
-        return $request->validate([
+        $data = $request->validate([
+            'company_id' => ['nullable', 'exists:companies,id', 'required_if:role,company_owner,company_staff'],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user?->id)],
             'password' => $passwordRules,
-            'role' => ['required', Rule::in(['owner', 'admin', 'operator'])],
+            'role' => ['required', Rule::in(['owner', 'admin', 'operator', 'company_owner', 'company_staff'])],
             'status' => ['required', Rule::in(['active', 'invited', 'suspended'])],
         ]);
+
+        if (! in_array($data['role'], ['company_owner', 'company_staff'], true)) {
+            $data['company_id'] = null;
+        }
+
+        return $data;
     }
 }

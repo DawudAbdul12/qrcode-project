@@ -276,7 +276,7 @@
                             <a class="view-more" href="{{ route('active8.page', ['page' => 'scan-logs', 'status' => 'suspicious']) }}">View logs ›</a>
                         </div>
                         <div class="admin-table-wrap">
-                            <table class="admin-table">
+                            <table class="admin-table" data-auto-paginate data-auto-paginate-label="suspicious scans" data-auto-paginate-per-page="8">
                                 <thead><tr><th>Status</th><th>Batch / Token</th><th>Product</th><th>Location</th><th>Device</th><th>Time</th></tr></thead>
                                 <tbody>
                                     @forelse ($analyticsReport['suspicious_scans'] as $scan)

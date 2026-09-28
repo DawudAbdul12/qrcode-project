@@ -199,7 +199,8 @@
         .whatsapp::before { content: attr(data-label); position: absolute; right: 68px; padding: 8px 10px; border-radius: 8px; background: #101828; color: #fff; font-size: 11px; font-weight: 800; white-space: nowrap; opacity: 0; pointer-events: none; transform: translateX(5px); transition: opacity .18s ease, transform .18s ease; }
         .whatsapp:hover { transform: translateY(-2px); box-shadow: 0 16px 30px rgba(18,140,126,.4); }
         .whatsapp:hover::before { opacity: 1; transform: translateX(0); }
-        .footer { padding: 18px 0 0; color: var(--muted); font-size: 12px; text-align: center; }
+        .footer { display:flex; align-items:center; justify-content:center; gap:8px; padding:18px 0 0; color:var(--muted); font-size:12px; text-align:center; }
+        .footer img { display:block; width:52px; height:auto; }
         @media (max-width: 640px) {
             .page { width: min(100% - 16px, 560px); padding-top: 8px; }
             .banner { min-height: 250px; }
@@ -410,7 +411,7 @@
             </section>
         @endif
 
-        @if ($showFooter && ($profile?->show_platform_branding ?? true))<footer class="footer">Secured by Active8 batch verification</footer>@endif
+        @if ($showFooter && ($profile?->show_platform_branding ?? true))<footer class="footer">Secured by <img src="{{ asset('images/active8-logo.png') }}" alt="Active8"> batch verification</footer>@endif
     </main>
 
     @if ($whatsAppUrl)

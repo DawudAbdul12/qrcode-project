@@ -41,8 +41,8 @@
                             <div class="company-detail-value">{{ number_format($userSummary['owners']) }}</div>
                         </div>
                         <div class="company-detail-card">
-                            <div class="company-detail-label">Operators</div>
-                            <div class="company-detail-value">{{ number_format($userSummary['operators']) }}</div>
+                            <div class="company-detail-label">Company Users</div>
+                            <div class="company-detail-value">{{ number_format($userSummary['company_users'] ?? 0) }}</div>
                         </div>
                     </div>
 
@@ -69,6 +69,8 @@
                                     <option value="owner">Owner</option>
                                     <option value="admin">Admin</option>
                                     <option value="operator">Operator</option>
+                                    <option value="company_owner">Company Owner</option>
+                                    <option value="company_staff">Company Staff</option>
                                 </select>
                                 <select class="font-select" data-user-status-filter aria-label="Filter by status">
                                     <option value="all">All statuses</option>
@@ -102,6 +104,7 @@
                                     <tr>
                                         <th class="fit"><input class="row-check" type="checkbox" data-user-select-all aria-label="Select all visible users"></th>
                                         <th>User</th>
+                                        <th>Company</th>
                                         <th class="fit">Role</th>
                                         <th class="fit">Status</th>
                                         <th>Last Login</th>
@@ -110,7 +113,7 @@
                                 </thead>
                                 <tbody>
                                     @forelse ($users as $user)
-                                        <tr class="row-clickable" data-user-row data-user-search-text="{{ Str::lower($user->name.' '.$user->email) }}" data-user-role="{{ $user->role }}" data-user-status="{{ $user->status }}" data-user-id="{{ $user->id }}">
+                                        <tr class="row-clickable" data-user-row data-user-search-text="{{ Str::lower($user->name.' '.$user->email.' '.($user->company?->name ?? 'platform')) }}" data-user-role="{{ $user->role }}" data-user-status="{{ $user->status }}" data-user-id="{{ $user->id }}">
                                             <td class="fit">
                                                 <input class="row-check" type="checkbox" value="{{ $user->id }}" data-user-select aria-label="Select {{ $user->name }}">
                                             </td>
@@ -123,8 +126,12 @@
                                                     </div>
                                                 </div>
                                             </td>
+                                            <td>
+                                                <div class="company-main-name">{{ $user->company?->name ?? 'Platform' }}</div>
+                                                <div class="company-sub-name">{{ $user->company ? 'Company dashboard' : 'Admin dashboard' }}</div>
+                                            </td>
                                             <td class="fit">
-                                                <span class="status-pill">{{ $user->role }}</span>
+                                                <span class="status-pill">{{ str_replace('_', ' ', $user->role) }}</span>
                                             </td>
                                             <td class="fit">
                                                 <span class="status-pill {{ $user->status }}">{{ $user->status }}</span>
@@ -151,10 +158,10 @@
                                             </td>
                                         </tr>
                                     @empty
-                                        <tr data-user-empty><td colspan="6">No dashboard users yet.</td></tr>
+                                        <tr data-user-empty><td colspan="7">No dashboard users yet.</td></tr>
                                     @endforelse
                                     <tr class="filter-empty" data-user-no-results>
-                                        <td colspan="6">
+                                        <td colspan="7">
                                             <div class="filter-empty-title">No users match those filters.</div>
                                             <div class="filter-empty-copy">Try a different search, role, or status.</div>
                                             <button class="btn-learn" type="button" data-clear-user-filters>Clear filters</button>
@@ -203,6 +210,8 @@
                                         <option value="operator" @selected(old('role') === 'operator')>Operator</option>
                                         <option value="admin" @selected(old('role') === 'admin')>Admin</option>
                                         <option value="owner" @selected(old('role') === 'owner')>Owner</option>
+                                        <option value="company_owner" @selected(old('role') === 'company_owner')>Company Owner</option>
+                                        <option value="company_staff" @selected(old('role') === 'company_staff')>Company Staff</option>
                                     </select>
                                 </div>
                                 <div>
@@ -214,6 +223,13 @@
                                     </select>
                                 </div>
                             </div>
+                            <label class="form-label">Company Access</label>
+                            <select class="font-select" name="company_id">
+                                <option value="">Platform admin user</option>
+                                @foreach ($companies as $companyOption)
+                                    <option value="{{ $companyOption->id }}" @selected((string) old('company_id') === (string) $companyOption->id)>{{ $companyOption->name }}</option>
+                                @endforeach
+                            </select>
                             <div class="role-preview" data-role-preview></div>
                             <button class="btn-add-content" type="submit">Create User</button>
                         </form>
@@ -232,8 +248,8 @@
                                     <div>
                                         <label class="form-label">Role</label>
                                         <select class="font-select" name="role" required data-role-select>
-                                            @foreach (['owner', 'admin', 'operator'] as $role)
-                                                <option value="{{ $role }}" @selected(old('role', $user->role) === $role)>{{ ucfirst($role) }}</option>
+                                            @foreach (['owner' => 'Owner', 'admin' => 'Admin', 'operator' => 'Operator', 'company_owner' => 'Company Owner', 'company_staff' => 'Company Staff'] as $role => $label)
+                                                <option value="{{ $role }}" @selected(old('role', $user->role) === $role)>{{ $label }}</option>
                                             @endforeach
                                         </select>
                                     </div>
@@ -246,6 +262,13 @@
                                         </select>
                                     </div>
                                 </div>
+                                <label class="form-label">Company Access</label>
+                                <select class="font-select" name="company_id">
+                                    <option value="">Platform admin user</option>
+                                    @foreach ($companies as $companyOption)
+                                        <option value="{{ $companyOption->id }}" @selected((string) old('company_id', $user->company_id) === (string) $companyOption->id)>{{ $companyOption->name }}</option>
+                                    @endforeach
+                                </select>
                                 <div class="role-preview" data-role-preview></div>
                                 <button class="btn-add-content" type="submit">Save User</button>
                             </form>
@@ -261,7 +284,8 @@
                                     </div>
                                 </div>
                                 <div class="activity-meta">
-                                    <div class="activity-meta-row"><span>Role</span><strong>{{ ucfirst($user->role) }}</strong></div>
+                                    <div class="activity-meta-row"><span>Role</span><strong>{{ str_replace('_', ' ', ucfirst($user->role)) }}</strong></div>
+                                    <div class="activity-meta-row"><span>Company</span><strong>{{ $user->company?->name ?? 'Platform admin user' }}</strong></div>
                                     <div class="activity-meta-row"><span>Status</span><strong>{{ ucfirst($user->status) }}</strong></div>
                                     <div class="activity-meta-row"><span>Last login</span><strong>{{ $user->last_login_at?->diffForHumans() ?? 'No login recorded' }}</strong></div>
                                     <div class="activity-meta-row"><span>Created</span><strong>{{ $user->created_at?->format('M j, Y') ?? 'Not recorded' }}</strong></div>

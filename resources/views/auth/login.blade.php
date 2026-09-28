@@ -17,151 +17,69 @@
             --shadow: 0 30px 90px rgba(15, 23, 42, .22);
         }
         * { box-sizing: border-box; }
-        html { min-height: 100%; background: #020617; }
+        html { min-height: 100%; background: #f8fafc; }
         body {
             margin: 0;
+            overflow: hidden;
             min-height: 100vh;
             color: var(--ink);
             font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background:
-                radial-gradient(circle at 18% 18%, rgba(37, 99, 235, .38), transparent 28rem),
-                radial-gradient(circle at 82% 72%, rgba(20, 184, 166, .18), transparent 24rem),
-                linear-gradient(135deg, #020617 0%, #0f172a 48%, #111827 100%);
+            background: #f8fafc;
         }
         a { color: inherit; text-decoration: none; }
         button, input { font: inherit; }
         .page {
-            min-height: 100vh;
+            height: 100vh;
             display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(420px, 500px);
-            padding: 22px;
+            grid-template-columns: minmax(0, 1fr) minmax(430px, 560px);
+            align-items: stretch;
+            padding: 0;
         }
-        .brand-panel {
+        .visual-panel {
             position: relative;
+            height: 100vh;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            min-height: calc(100vh - 44px);
-            padding: 38px;
-            border: 1px solid rgba(255, 255, 255, .1);
-            border-radius: 30px;
-            background:
-                linear-gradient(145deg, rgba(15, 23, 42, .86), rgba(15, 23, 42, .54)),
-                radial-gradient(circle at 80% 20%, rgba(37, 99, 235, .35), transparent 20rem);
-            color: white;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+            background: #e8eef3;
         }
-        .brand-panel::before {
-            content: "";
-            position: absolute;
-            inset: auto -12% 10% auto;
-            width: 420px;
-            height: 420px;
-            border: 1px solid rgba(255,255,255,.14);
-            border-radius: 999px;
-            background: radial-gradient(circle, rgba(37,99,235,.22), transparent 58%);
+        .visual-panel img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+            object-position: center;
         }
-        .brand-panel::after {
+        .visual-panel::after {
             content: "";
             position: absolute;
             inset: 0;
             pointer-events: none;
-            background-image:
-                linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,.055) 1px, transparent 1px);
-            background-size: 48px 48px;
-            mask-image: linear-gradient(120deg, rgba(0,0,0,.78), transparent 72%);
+            background: linear-gradient(180deg, rgba(15, 23, 42, .06), rgba(15, 23, 42, .18));
         }
-        .brand-top, .hero-copy, .brand-bottom { position: relative; z-index: 1; }
-        .brand-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-        .brand-mark { display: inline-flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 900; letter-spacing: -.03em; }
-        .mark {
-            width: 44px;
-            height: 44px;
-            display: grid;
-            place-items: center;
-            border: 1px solid rgba(255,255,255,.18);
-            border-radius: 15px;
-            background: rgba(255,255,255,.1);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
-        }
-        .security-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 9px 12px;
-            border: 1px solid rgba(255,255,255,.16);
-            border-radius: 999px;
-            background: rgba(255,255,255,.08);
-            color: rgba(255,255,255,.82);
-            font-size: 12px;
-            font-weight: 800;
-        }
-        .security-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 5px rgba(34,197,94,.13); }
-        h1 {
-            max-width: 720px;
-            margin: 0 0 18px;
-            font-size: clamp(42px, 7vw, 86px);
-            line-height: .92;
-            letter-spacing: -.08em;
-        }
-        .brand-copy {
-            max-width: 600px;
-            margin: 0;
-            color: rgba(255,255,255,.72);
-            font-size: 18px;
-            line-height: 1.75;
-        }
-        .signal-card {
-            width: min(100%, 560px);
-            margin-top: 32px;
-            padding: 16px;
-            border: 1px solid rgba(255,255,255,.14);
-            border-radius: 22px;
-            background: rgba(15,23,42,.62);
-            backdrop-filter: blur(18px);
-        }
-        .signal-head { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 14px; color: rgba(255,255,255,.68); font-size: 12px; font-weight: 800; }
-        .signal-line { height: 96px; display: flex; align-items: end; gap: 8px; padding: 10px 0; }
-        .bar { flex: 1; min-width: 10px; border-radius: 999px 999px 4px 4px; background: linear-gradient(180deg, #60a5fa, #2563eb); opacity: .86; }
-        .bar:nth-child(2) { height: 46%; }
-        .bar:nth-child(3) { height: 72%; }
-        .bar:nth-child(4) { height: 58%; }
-        .bar:nth-child(5) { height: 86%; }
-        .bar:nth-child(6) { height: 64%; }
-        .bar:nth-child(7) { height: 92%; }
-        .bar:nth-child(8) { height: 76%; }
-        .bar:nth-child(9) { height: 88%; }
-        .bar:nth-child(10) { height: 62%; }
-        .brand-bottom { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-        .metric {
-            padding: 15px;
-            border: 1px solid rgba(255,255,255,.13);
-            border-radius: 18px;
-            background: rgba(255,255,255,.08);
-        }
-        .metric strong { display: block; font-size: 22px; letter-spacing: -.04em; }
-        .metric span { display: block; margin-top: 5px; color: rgba(255,255,255,.66); font-size: 12px; line-height: 1.45; }
+        .brand-logo-img { display: block; width: 96px; height: auto; }
         .form-panel {
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 28px 14px 28px 34px;
+            width: 100%;
+            height: 100vh;
+            padding: 48px 56px;
+            overflow: auto;
+            background: var(--white);
+            box-shadow: -22px 0 60px rgba(15, 23, 42, .10);
         }
         .card {
             width: 100%;
-            max-width: 430px;
-            padding: 30px;
-            border: 1px solid rgba(255,255,255,.72);
-            border-radius: 28px;
-            background: rgba(255,255,255,.94);
-            box-shadow: var(--shadow);
-            backdrop-filter: blur(26px);
+            max-width: 420px;
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            box-shadow: none;
+            backdrop-filter: none;
         }
         .card-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 24px; }
         .mini-brand { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 900; }
-        .mini-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; background: #0f172a; color: white; font-size: 12px; font-weight: 900; }
+        .mini-brand .brand-logo-img { width: 96px; }
         .secure-badge { padding: 7px 9px; border: 1px solid #bbf7d0; border-radius: 999px; background: #f0fdf4; color: var(--green); font-size: 11px; font-weight: 900; }
         .eyebrow { color: var(--blue); font-size: 12px; font-weight: 900; letter-spacing: .13em; text-transform: uppercase; }
         h2 { margin: 8px 0 8px; font-size: 32px; line-height: 1.05; letter-spacing: -.045em; }
@@ -237,19 +155,15 @@
         }
         .access-note strong { display: block; margin-bottom: 4px; color: #0f172a; }
         @media (max-width: 960px) {
-            .page { grid-template-columns: 1fr; padding: 14px; }
-            .brand-panel { min-height: auto; padding: 26px; }
-            .hero-copy { margin: 70px 0; }
-            .brand-bottom { grid-template-columns: 1fr; }
-            .form-panel { padding: 16px 0 0; }
+            body { overflow: auto; }
+            .form-panel { min-height: 100vh; height: auto; padding: 32px 22px; overflow: visible; box-shadow: none; }
+            .page { grid-template-columns: 1fr; padding: 0; }
+            .visual-panel { display: none; }
             .card { max-width: none; }
         }
         @media (max-width: 560px) {
-            .brand-top, .card-top, .row { align-items: flex-start; flex-direction: column; }
-            .security-pill { display: none; }
-            h1 { font-size: 42px; }
-            .brand-copy { font-size: 15px; }
-            .card { padding: 22px; border-radius: 22px; }
+            .card-top, .row { align-items: flex-start; flex-direction: column; }
+            .form-panel { align-items: flex-start; padding: 24px 18px; }
         }
     </style>
 </head>
@@ -261,47 +175,14 @@
     </svg>
 
     <main class="page">
-        <section class="brand-panel" aria-label="Active8 platform summary">
-            <div class="brand-top">
-                <div class="brand-mark"><span class="mark">A8</span> Active8</div>
-                <div class="security-pill"><span class="security-dot"></span> Secure admin portal</div>
-            </div>
-
-            <div class="hero-copy">
-                <h1>Product trust starts here.</h1>
-                <p class="brand-copy">Control company profiles, batch QR codes, scan intelligence, audit trails, and anti-counterfeit verification from one polished command center.</p>
-
-                <div class="signal-card">
-                    <div class="signal-head">
-                        <span>Verification signal</span>
-                        <span>Live operations</span>
-                    </div>
-                    <div class="signal-line" aria-hidden="true">
-                        <span class="bar" style="height:38%"></span>
-                        <span class="bar"></span>
-                        <span class="bar"></span>
-                        <span class="bar"></span>
-                        <span class="bar"></span>
-                        <span class="bar"></span>
-                        <span class="bar"></span>
-                        <span class="bar"></span>
-                        <span class="bar"></span>
-                        <span class="bar"></span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="brand-bottom">
-                <div class="metric"><strong>QR</strong><span>Lifecycle controls for batches and labels.</span></div>
-                <div class="metric"><strong>Risk</strong><span>Repeat scan and anomaly intelligence.</span></div>
-                <div class="metric"><strong>Audit</strong><span>Traceable admin activity and reports.</span></div>
-            </div>
+        <section class="visual-panel" aria-label="QR verification preview">
+            <img src="{{ asset('images/login-verification-hero.png') }}" alt="Product package QR verification scan">
         </section>
 
         <section class="form-panel" aria-label="Sign in form">
             <div class="card">
                 <div class="card-top">
-                    <div class="mini-brand"><span class="mini-mark">A8</span> Active8</div>
+                    <div class="mini-brand"><img class="brand-logo-img" src="{{ asset('images/active8-logo.png') }}" alt="Active8"></div>
                     <span class="secure-badge">Protected</span>
                 </div>
 

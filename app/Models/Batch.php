@@ -48,4 +48,9 @@ class Batch extends Model
     {
         return $this->hasMany(LabelOrder::class);
     }
+
+    public function labelCodes(): HasMany
+    {
+        return $this->hasMany(LabelCode::class);
+    }
 }

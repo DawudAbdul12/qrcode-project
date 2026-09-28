@@ -4,28 +4,56 @@ namespace App\Http\Controllers;
 
 use App\Models\Batch;
 use App\Models\LabelOrder;
+use App\Services\LabelCodeGenerator;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Validation\Rule;
 
 class LabelOrderController extends Controller
 {
-    public function store(Request $request): RedirectResponse
+    public function search(Request $request): JsonResponse
     {
-        LabelOrder::query()->create($this->validatedData($request));
+        $search = trim((string) $request->query('q', ''));
 
-        return redirect()
-            ->route('active8.page', 'label-orders')
-            ->with('status', 'Label order created successfully.');
+        $orders = LabelOrder::query()
+            ->with(['company', 'batch.product'])
+            ->withCount('labelCodes')
+            ->when($search !== '', fn ($query) => $this->applySearch($query, $search))
+            ->latest()
+            ->limit(20)
+            ->get()
+            ->map(fn (LabelOrder $order) => [
+                'id' => $order->id,
+                'title' => '#'.$order->id.' · '.($order->company?->name ?? 'No company'),
+                'subtitle' => ($order->batch?->product?->name ?? 'No product').' · '.($order->batch?->batch_number ?? 'General').' · '.($order->printer_vendor ?? 'No printer'),
+                'codes' => number_format($order->label_codes_count).' codes',
+            ]);
+
+        return response()->json([
+            'results' => $orders,
+        ]);
     }
 
-    public function update(Request $request, LabelOrder $labelOrder): RedirectResponse
+    public function store(Request $request, LabelCodeGenerator $codeGenerator): RedirectResponse
     {
-        $labelOrder->update($this->validatedData($request));
+        $labelOrder = LabelOrder::query()->create($this->validatedData($request));
+        $codeGenerator->reconcile($labelOrder->load('company'));
 
         return redirect()
             ->route('active8.page', 'label-orders')
-            ->with('status', 'Label order updated successfully.');
+            ->with('status', 'Label order created with '.number_format($labelOrder->print_quantity).' USSD codes.');
+    }
+
+    public function update(Request $request, LabelOrder $labelOrder, LabelCodeGenerator $codeGenerator): RedirectResponse
+    {
+        $labelOrder->update($this->validatedData($request));
+        $codeGenerator->reconcile($labelOrder->refresh()->load('company'));
+
+        return redirect()
+            ->route('active8.page', 'label-orders')
+            ->with('status', 'Label order updated and USSD codes synced to print quantity.');
     }
 
     public function destroy(LabelOrder $labelOrder): RedirectResponse
@@ -35,6 +63,50 @@ class LabelOrderController extends Controller
         return redirect()
             ->route('active8.page', 'label-orders')
             ->with('status', 'Label order deleted successfully.');
+    }
+
+    public function exportCodes(LabelOrder $labelOrder): StreamedResponse
+    {
+        $labelOrder->load(['company', 'batch.product']);
+        $filename = 'label-order-'.$labelOrder->id.'-ussd-codes.csv';
+
+        return response()->streamDownload(function () use ($labelOrder): void {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, [
+                'sequence',
+                'scratch_code',
+                'formatted_code',
+                'status',
+                'verification_count',
+                'company',
+                'product',
+                'batch',
+                'label_type',
+            ]);
+
+            $sequence = 1;
+            $labelOrder->labelCodes()
+                ->oldest('id')
+                ->chunk(500, function ($codes) use (&$sequence, $handle, $labelOrder): void {
+                    foreach ($codes as $code) {
+                        fputcsv($handle, [
+                            $sequence++,
+                            $code->code,
+                            $code->formattedCode(),
+                            $code->status,
+                            $code->verification_count,
+                            $labelOrder->company?->name,
+                            $labelOrder->batch?->product?->name,
+                            $labelOrder->batch?->batch_number,
+                            $labelOrder->label_type,
+                        ]);
+                    }
+                });
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv',
+        ]);
     }
 
     public function bulk(Request $request): RedirectResponse
@@ -108,5 +180,20 @@ class LabelOrderController extends Controller
         }
 
         return $data;
+    }
+
+    private function applySearch($query, string $search): void
+    {
+        $query->where(function ($builder) use ($search): void {
+            if (ctype_digit($search)) {
+                $builder->orWhereKey($search);
+            }
+
+            $builder
+                ->orWhere('printer_vendor', 'like', '%'.$search.'%')
+                ->orWhereHas('company', fn ($companyQuery) => $companyQuery->where('name', 'like', '%'.$search.'%'))
+                ->orWhereHas('batch', fn ($batchQuery) => $batchQuery->where('batch_number', 'like', '%'.$search.'%'))
+                ->orWhereHas('batch.product', fn ($productQuery) => $productQuery->where('name', 'like', '%'.$search.'%'));
+        });
     }
 }
