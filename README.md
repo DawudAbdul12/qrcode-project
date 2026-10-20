@@ -58,7 +58,7 @@ Set `NALO_USSD_USER_ID` to the application ID supplied by NALO, then register th
 POST https://your-domain.example/ussd/callback
 ```
 
-The callback accepts NALO's `USERID`, `MSISDN`, `USERDATA`, `MSGTYPE`, `NETWORK`, and `SESSIONID` fields. An empty `USERDATA` starts the session and prompts for the label code; the next request verifies the code and ends the session. The endpoint is CSRF-exempt and rate-limited. Use `/ussd/test` to test the same flow locally.
+The callback accepts NALO's `USERID`, `MSISDN`, `USERDATA`, `MSGTYPE`, `NETWORK`, and `SESSIONID` fields. An empty `USERDATA` or an initial dial string such as `*920*88#` starts the session and prompts for the label code. NALO's next request contains the customer's latest input in `USERDATA`; the callback verifies that code and ends the session. The endpoint is CSRF-exempt and rate-limited. Use `/ussd/test` to test the same flow locally.
 
 ## Security Vulnerabilities
 

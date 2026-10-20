@@ -27,7 +27,7 @@ class UssdVerificationController extends Controller
 
         $userData = trim($this->stringInput($request, 'USERDATA'));
 
-        if ($userData === '') {
+        if ($userData === '' || $this->isDialString($userData)) {
             return $this->naloResponse($userId, $msisdn, 'Enter the code printed on the product label:', true);
         }
 
@@ -205,7 +205,8 @@ class UssdVerificationController extends Controller
             ->map(fn (string $segment) => trim($segment, " \t\n\r\0\x0B#"))
             ->filter()
             ->values();
-        $code = Str::upper((string) ($segments->last() ?? ''));
+        $submittedCode = (string) ($segments->last() ?? '');
+        $code = Str::upper((string) preg_replace('/[\s\p{Pd}]+/u', '', $submittedCode));
 
         if (! preg_match('/^[A-Z0-9]{6,20}$/', $code)) {
             throw ValidationException::withMessages(['code' => 'Enter a valid label code.']);
@@ -219,6 +220,11 @@ class UssdVerificationController extends Controller
         $value = $request->input($key, '');
 
         return is_scalar($value) ? (string) $value : '';
+    }
+
+    private function isDialString(string $userData): bool
+    {
+        return str_starts_with($userData, '*') && str_ends_with($userData, '#');
     }
 
     private function naloResponse(string $userId, string $msisdn, string $message, bool $continueSession, int $status = 200): JsonResponse

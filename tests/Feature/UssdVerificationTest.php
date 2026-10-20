@@ -19,7 +19,7 @@ class UssdVerificationTest extends TestCase
     {
         $labelCode = $this->labelCode();
 
-        $this->post(route('ussd.callback'), $this->naloPayload('*XXX*'.$labelCode->code.'#'))
+        $this->post(route('ussd.callback'), $this->naloPayload($labelCode->code))
             ->assertOk()
             ->assertHeader('content-type', 'application/json')
             ->assertJsonPath('USERID', 'ACTIVE8')
@@ -45,9 +45,39 @@ class UssdVerificationTest extends TestCase
         $this->assertSame('session-1', $metadata['session_id']);
     }
 
+    public function test_ussd_callback_accepts_the_hyphenated_code_printed_on_the_label(): void
+    {
+        $labelCode = $this->labelCode();
+
+        $this->post(route('ussd.callback'), $this->naloPayload($labelCode->formattedCode()))
+            ->assertOk()
+            ->assertJsonPath('MSGTYPE', false)
+            ->assertJsonPath('MSG', 'GENUINE: Shea Butter by Akoma Naturals. Keep this SMS.');
+
+        $this->assertDatabaseHas('label_codes', [
+            'id' => $labelCode->id,
+            'status' => 'used',
+            'verification_count' => 1,
+        ]);
+    }
+
     public function test_ussd_callback_prompts_for_a_code_when_nalo_starts_a_session(): void
     {
         $this->post(route('ussd.callback'), $this->naloPayload(''))
+            ->assertOk()
+            ->assertJson([
+                'USERID' => 'ACTIVE8',
+                'MSISDN' => '233240000000',
+                'MSG' => 'Enter the code printed on the product label:',
+                'MSGTYPE' => true,
+            ]);
+
+        $this->assertDatabaseCount('scan_logs', 0);
+    }
+
+    public function test_ussd_callback_prompts_when_nalo_sends_the_dial_string_on_session_start(): void
+    {
+        $this->post(route('ussd.callback'), $this->naloPayload('*920*88#'))
             ->assertOk()
             ->assertJson([
                 'USERID' => 'ACTIVE8',
