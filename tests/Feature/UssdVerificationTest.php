@@ -19,14 +19,13 @@ class UssdVerificationTest extends TestCase
     {
         $labelCode = $this->labelCode();
 
-        $this->post(route('ussd.callback'), [
-            'text' => '*XXX*'.$labelCode->code.'#',
-            'phoneNumber' => '0240000000',
-            'sessionId' => 'session-1',
-        ])
+        $this->post(route('ussd.callback'), $this->naloPayload('*XXX*'.$labelCode->code.'#'))
             ->assertOk()
-            ->assertHeader('content-type', 'text/plain; charset=UTF-8')
-            ->assertSeeText('END GENUINE');
+            ->assertHeader('content-type', 'application/json')
+            ->assertJsonPath('USERID', 'ACTIVE8')
+            ->assertJsonPath('MSISDN', '233240000000')
+            ->assertJsonPath('MSGTYPE', false)
+            ->assertJsonPath('MSG', 'GENUINE: Shea Butter by Akoma Naturals. Keep this SMS.');
 
         $this->assertDatabaseHas('label_codes', [
             'id' => $labelCode->id,
@@ -40,16 +39,32 @@ class UssdVerificationTest extends TestCase
             'status_result' => 'genuine',
             'device_type' => 'ussd',
         ]);
+
+        $metadata = ScanLog::query()->firstOrFail()->metadata;
+        $this->assertSame('nalo', $metadata['provider']);
+        $this->assertSame('session-1', $metadata['session_id']);
+    }
+
+    public function test_ussd_callback_prompts_for_a_code_when_nalo_starts_a_session(): void
+    {
+        $this->post(route('ussd.callback'), $this->naloPayload(''))
+            ->assertOk()
+            ->assertJson([
+                'USERID' => 'ACTIVE8',
+                'MSISDN' => '233240000000',
+                'MSG' => 'Enter the code printed on the product label:',
+                'MSGTYPE' => true,
+            ]);
+
+        $this->assertDatabaseCount('scan_logs', 0);
     }
 
     public function test_ussd_callback_logs_invalid_code_attempts(): void
     {
-        $this->post(route('ussd.callback'), [
-            'text' => '*XXX*NOPE999#',
-            'phoneNumber' => '0240000000',
-        ])
+        $this->post(route('ussd.callback'), $this->naloPayload('NOPE999'))
             ->assertOk()
-            ->assertSeeText('END INVALID CODE');
+            ->assertJsonPath('MSGTYPE', false)
+            ->assertJsonPath('MSG', 'INVALID CODE. Product may not be genuine.');
 
         $this->assertDatabaseHas('scan_logs', [
             'label_code_id' => null,
@@ -68,9 +83,9 @@ class UssdVerificationTest extends TestCase
             'last_verified_at' => now()->subDay(),
         ]);
 
-        $this->post(route('ussd.callback'), ['code' => $labelCode->code])
+        $this->post(route('ussd.callback'), $this->naloPayload($labelCode->code))
             ->assertOk()
-            ->assertSeeText('END USED CODE');
+            ->assertJsonPath('MSG', 'USED CODE. This label was already checked. Call the seller if unsure.');
 
         $this->assertDatabaseHas('label_codes', [
             'id' => $labelCode->id,
@@ -93,9 +108,9 @@ class UssdVerificationTest extends TestCase
             'last_verified_at' => now()->subHour(),
         ]);
 
-        $this->post(route('ussd.callback'), ['code' => $labelCode->code])
+        $this->post(route('ussd.callback'), $this->naloPayload($labelCode->code))
             ->assertOk()
-            ->assertSeeText('END SUSPICIOUS CODE');
+            ->assertJsonPath('MSG', 'SUSPICIOUS CODE. Too many checks. Contact the manufacturer.');
 
         $this->assertDatabaseHas('label_codes', [
             'id' => $labelCode->id,
@@ -114,9 +129,10 @@ class UssdVerificationTest extends TestCase
         foreach (['revoked', 'expired', 'recalled'] as $status) {
             $labelCode = $this->labelCode(['code' => 'CODE'.strtoupper($status), 'status' => $status]);
 
-            $this->post(route('ussd.callback'), ['code' => $labelCode->code])
+            $this->post(route('ussd.callback'), $this->naloPayload($labelCode->code))
                 ->assertOk()
-                ->assertSeeText('END '.strtoupper($status));
+                ->assertJsonPath('MSGTYPE', false)
+                ->assertJsonPath('MSG', fn (string $message): bool => str_starts_with($message, strtoupper($status)));
 
             $this->assertDatabaseHas('scan_logs', [
                 'label_code_id' => $labelCode->id,
@@ -130,6 +146,33 @@ class UssdVerificationTest extends TestCase
         $this->get(route('ussd.test'))
             ->assertOk()
             ->assertSee('USSD Verification Test');
+    }
+
+    public function test_ussd_callback_rejects_a_different_nalo_user_id_when_configured(): void
+    {
+        config()->set('services.nalo.ussd_user_id', 'EXPECTED-ID');
+
+        $this->post(route('ussd.callback'), $this->naloPayload('ABC12345678'))
+            ->assertForbidden()
+            ->assertJsonPath('MSGTYPE', false)
+            ->assertJsonPath('MSG', 'Unable to process this request.');
+
+        $this->assertDatabaseCount('scan_logs', 0);
+    }
+
+    /**
+     * @return array{USERID: string, MSISDN: string, USERDATA: string, MSGTYPE: bool, NETWORK: string, SESSIONID: string}
+     */
+    private function naloPayload(string $userData): array
+    {
+        return [
+            'USERID' => 'ACTIVE8',
+            'MSISDN' => '233240000000',
+            'USERDATA' => $userData,
+            'MSGTYPE' => true,
+            'NETWORK' => 'MTN',
+            'SESSIONID' => 'session-1',
+        ];
     }
 
     private function labelCode(array $overrides = []): LabelCode

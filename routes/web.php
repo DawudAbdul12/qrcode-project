@@ -67,7 +67,7 @@ Route::get('/admin/{legacyPage}', function (string $legacyPage) {
 })->whereIn('legacyPage', ['profile', 'editor', 'contacts', 'email', 'analytics', 'integrations', 'shop', 'settings']);
 
 Route::get('/verify/{token}', [VerifyController::class, 'show'])->middleware('throttle:30,1')->name('verify.show');
-Route::post('/ussd/callback', [UssdVerificationController::class, 'callback'])->middleware('throttle:90,1')->name('ussd.callback');
+Route::post('/ussd/callback', [UssdVerificationController::class, 'callback'])->middleware('throttle:ussd')->name('ussd.callback');
 Route::get('/ussd/test', [UssdVerificationController::class, 'simulator'])->name('ussd.test');
 Route::post('/ussd/test', [UssdVerificationController::class, 'simulate'])->name('ussd.test.submit');
 

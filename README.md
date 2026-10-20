@@ -50,6 +50,16 @@ Thank you for considering contributing to the Laravel framework! The contributio
 
 In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
 
+## NALO USSD integration
+
+Set `NALO_USSD_USER_ID` to the application ID supplied by NALO, then register this public HTTPS callback URL in the NALO portal:
+
+```text
+POST https://your-domain.example/ussd/callback
+```
+
+The callback accepts NALO's `USERID`, `MSISDN`, `USERDATA`, `MSGTYPE`, `NETWORK`, and `SESSIONID` fields. An empty `USERDATA` starts the session and prompts for the label code; the next request verifies the code and ends the session. The endpoint is CSRF-exempt and rate-limited. Use `/ussd/test` to test the same flow locally.
+
 ## Security Vulnerabilities
 
 If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.

@@ -62,7 +62,7 @@
 <body>
     <main>
         <h1>USSD Verification Test</h1>
-        <p>Enter a local dial string such as *XXX*ABC12345678# or paste the label code directly.</p>
+        <p>Simulate the NALO <code>USERDATA</code> value by entering a label code or a full dial string such as *XXX*ABC12345678#.</p>
 
         <form method="POST" action="{{ route('ussd.test.submit') }}">
             @csrf

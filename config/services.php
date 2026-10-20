@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'nalo' => [
+        'ussd_user_id' => env('NALO_USSD_USER_ID'),
+    ],
+
 ];

@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\LabelCode;
 use App\Models\ScanLog;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -15,20 +15,34 @@ class UssdVerificationController extends Controller
 {
     private const SUSPICIOUS_AFTER_ATTEMPTS = 3;
 
-    public function callback(Request $request): Response
+    public function callback(Request $request): JsonResponse
     {
+        $userId = $this->stringInput($request, 'USERID');
+        $msisdn = $this->stringInput($request, 'MSISDN');
+        $configuredUserId = (string) config('services.nalo.ussd_user_id');
+
+        if ($configuredUserId !== '' && ! hash_equals($configuredUserId, $userId)) {
+            return $this->naloResponse($userId, $msisdn, 'Unable to process this request.', false, 403);
+        }
+
+        $userData = trim($this->stringInput($request, 'USERDATA'));
+
+        if ($userData === '') {
+            return $this->naloResponse($userId, $msisdn, 'Enter the code printed on the product label:', true);
+        }
+
         try {
             $code = $this->validatedCode($request);
         } catch (ValidationException) {
-            $message = 'END INVALID CODE. Enter the code printed on the label.';
-            $this->logAttempt($request, null, $request->input('code') ?? $request->input('text'), 'invalid', $message);
+            $message = 'INVALID CODE. Enter the code printed on the label.';
+            $this->logAttempt($request, null, $userData, 'invalid', $message);
 
-            return $this->plain($message);
+            return $this->naloResponse($userId, $msisdn, $message, false);
         }
 
         $result = DB::transaction(fn () => $this->verifyCode($request, $code));
 
-        return $this->plain($result['message']);
+        return $this->naloResponse($userId, $msisdn, $result['message'], false);
     }
 
     public function simulator(): View
@@ -47,18 +61,21 @@ class UssdVerificationController extends Controller
         ]);
 
         $callbackRequest = Request::create('/ussd/callback', 'POST', [
-            'text' => $data['dial_string'],
-            'phoneNumber' => $data['phone_number'] ?? '0240000000',
-            'sessionId' => 'local-'.Str::uuid(),
-            'serviceCode' => '*XXX#',
+            'USERID' => config('services.nalo.ussd_user_id') ?: 'LOCAL-SIMULATOR',
+            'MSISDN' => $data['phone_number'] ?? '0240000000',
+            'USERDATA' => $data['dial_string'],
+            'MSGTYPE' => true,
+            'NETWORK' => 'LOCAL',
+            'SESSIONID' => 'local-'.Str::uuid(),
         ]);
         $callbackRequest->headers->set('user-agent', 'Local USSD Simulator');
 
         $response = $this->callback($callbackRequest);
+        $responsePayload = $response->getData(true);
 
         return back()
             ->withInput()
-            ->with('ussd_response', $response->getContent());
+            ->with('ussd_response', $responsePayload['MSG'] ?? 'No response received.');
     }
 
     /**
@@ -73,7 +90,7 @@ class UssdVerificationController extends Controller
             ->first();
 
         if (! $labelCode) {
-            $message = 'END INVALID CODE. Product may not be genuine.';
+            $message = 'INVALID CODE. Product may not be genuine.';
             $this->logAttempt($request, null, $code, 'invalid', $message);
 
             return ['status' => 'invalid', 'message' => $message];
@@ -137,13 +154,13 @@ class UssdVerificationController extends Controller
         $company = $labelCode->company?->name ?? $labelCode->batch?->product?->company?->name ?? 'manufacturer';
 
         return match ($status) {
-            'genuine' => 'END GENUINE: '.$product.' by '.$company.'. Keep this SMS.',
-            'already_used' => 'END USED CODE. This label was already checked. Call the seller if unsure.',
-            'suspicious' => 'END SUSPICIOUS CODE. Too many checks. Contact the manufacturer.',
-            'revoked' => 'END REVOKED CODE. Do not use this product. Contact the manufacturer.',
-            'expired' => 'END EXPIRED PRODUCT. Do not use. Contact the seller.',
-            'recalled' => 'END RECALLED PRODUCT. Stop use and contact the manufacturer.',
-            default => 'END INVALID CODE. Product may not be genuine.',
+            'genuine' => 'GENUINE: '.$product.' by '.$company.'. Keep this SMS.',
+            'already_used' => 'USED CODE. This label was already checked. Call the seller if unsure.',
+            'suspicious' => 'SUSPICIOUS CODE. Too many checks. Contact the manufacturer.',
+            'revoked' => 'REVOKED CODE. Do not use this product. Contact the manufacturer.',
+            'expired' => 'EXPIRED PRODUCT. Do not use. Contact the seller.',
+            'recalled' => 'RECALLED PRODUCT. Stop use and contact the manufacturer.',
+            default => 'INVALID CODE. Product may not be genuine.',
         };
     }
 
@@ -160,10 +177,13 @@ class UssdVerificationController extends Controller
             'browser' => 'USSD',
             'metadata' => [
                 'channel' => 'ussd',
-                'session_id' => $request->input('sessionId') ?? $request->input('session_id'),
-                'service_code' => $request->input('serviceCode') ?? $request->input('service_code'),
-                'phone_number' => $request->input('phoneNumber') ?? $request->input('phone_number') ?? $request->input('msisdn'),
-                'raw_text' => $request->input('text'),
+                'provider' => 'nalo',
+                'session_id' => $this->stringInput($request, 'SESSIONID'),
+                'user_id' => $this->stringInput($request, 'USERID'),
+                'phone_number' => $this->stringInput($request, 'MSISDN'),
+                'network' => $this->stringInput($request, 'NETWORK'),
+                'request_msg_type' => $request->input('MSGTYPE'),
+                'raw_text' => $this->stringInput($request, 'USERDATA'),
                 'response_message' => $message,
                 'attempt_number' => $attemptNumber,
             ],
@@ -175,18 +195,12 @@ class UssdVerificationController extends Controller
      */
     private function validatedCode(Request $request): string
     {
-        $payload = $request->validate([
-            'text' => ['nullable', 'string', 'max:80'],
-            'code' => ['nullable', 'string', 'max:40'],
-            'phoneNumber' => ['nullable', 'string', 'max:30'],
-            'phone_number' => ['nullable', 'string', 'max:30'],
-            'sessionId' => ['nullable', 'string', 'max:80'],
-            'session_id' => ['nullable', 'string', 'max:80'],
-            'serviceCode' => ['nullable', 'string', 'max:30'],
-            'service_code' => ['nullable', 'string', 'max:30'],
-        ]);
+        $raw = $this->stringInput($request, 'USERDATA');
 
-        $raw = $payload['code'] ?? $payload['text'] ?? '';
+        if (mb_strlen($raw) > 80) {
+            throw ValidationException::withMessages(['USERDATA' => 'Enter a valid label code.']);
+        }
+
         $segments = collect(explode('*', trim($raw)))
             ->map(fn (string $segment) => trim($segment, " \t\n\r\0\x0B#"))
             ->filter()
@@ -200,8 +214,20 @@ class UssdVerificationController extends Controller
         return $code;
     }
 
-    private function plain(string $message): Response
+    private function stringInput(Request $request, string $key): string
     {
-        return response($message, 200)->header('Content-Type', 'text/plain');
+        $value = $request->input($key, '');
+
+        return is_scalar($value) ? (string) $value : '';
+    }
+
+    private function naloResponse(string $userId, string $msisdn, string $message, bool $continueSession, int $status = 200): JsonResponse
+    {
+        return response()->json([
+            'USERID' => $userId,
+            'MSISDN' => $msisdn,
+            'MSG' => $message,
+            'MSGTYPE' => $continueSession,
+        ], $status);
     }
 }

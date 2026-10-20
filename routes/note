@@ -748,3 +748,25 @@ add pagination to all the tables
 
 
 there should be a toggle that will expand and collapse
+
+
+---------------------------------------------------------
+For your project in Ghana, I’d use Asterisks for V1, then move to a direct provider like Arkesel or NALO later if volume grows.
+Best pick for V1: Asterisks
+Why:
+- Very affordable: GHS 0.025 per USSD session
+- First 1,000 sessions free
+- Minimum top-up is only GHS 10
+- Supports providers like Africa’s Talking, Hubtel, NALO, and Arkesel
+- Has exportable flows, so you are not fully locked in
+- Growth/enterprise plans mention SLA options
+Source: Asterisks pricing page lists pay-as-you-go at GHS 0.025/session and says it supports Hubtel, NALO, Arkesel, and Africa’s Talking. https://useasterisks.com/pricing
+Best direct Ghana provider: Arkesel
+Use Arkesel if you want a more direct developer API relationship. Their docs show USSD request handling via JSON callback URLs, and they advertise TLS encryption plus ISO 27001 certification.
+Sources:
+- https://developers.arkesel.com/
+- https://arkesel.com/developer-api/
+Enterprise/local option: NALO
+NALO is also a strong Ghana-local option for USSD, especially if you want custom menus, reporting, and direct API integration, but pricing is more “speak to sales” style.
+Source: https://nalosolutions.com/ussd/
+My recommendation: for your anti-counterfeit system, start with shared USSD through Asterisks. It is cheap enough to test real users without committing to expensive shortcode setup. When you have serious volume or enterprise clients, compare direct quotes from Arkesel, NALO, and Hubtel.
