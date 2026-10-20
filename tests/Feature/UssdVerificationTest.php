@@ -63,7 +63,7 @@ class UssdVerificationTest extends TestCase
 
     public function test_ussd_callback_prompts_for_a_code_when_nalo_starts_a_session(): void
     {
-        $this->post(route('ussd.callback'), $this->naloPayload(''))
+        $this->post(route('ussd.callback'), $this->naloPayload('9', true))
             ->assertOk()
             ->assertJson([
                 'USERID' => 'ACTIVE8',
@@ -75,9 +75,12 @@ class UssdVerificationTest extends TestCase
         $this->assertDatabaseCount('scan_logs', 0);
     }
 
-    public function test_ussd_callback_prompts_when_nalo_sends_the_dial_string_on_session_start(): void
+    public function test_ussd_callback_accepts_string_one_as_nalos_initial_request_flag(): void
     {
-        $this->post(route('ussd.callback'), $this->naloPayload('*920*88#'))
+        $payload = $this->naloPayload('9');
+        $payload['MSGTYPE'] = '1';
+
+        $this->post(route('ussd.callback'), $payload)
             ->assertOk()
             ->assertJson([
                 'USERID' => 'ACTIVE8',
@@ -193,13 +196,13 @@ class UssdVerificationTest extends TestCase
     /**
      * @return array{USERID: string, MSISDN: string, USERDATA: string, MSGTYPE: bool, NETWORK: string, SESSIONID: string}
      */
-    private function naloPayload(string $userData): array
+    private function naloPayload(string $userData, bool $messageType = false): array
     {
         return [
             'USERID' => 'ACTIVE8',
             'MSISDN' => '233240000000',
             'USERDATA' => $userData,
-            'MSGTYPE' => true,
+            'MSGTYPE' => $messageType,
             'NETWORK' => 'MTN',
             'SESSIONID' => 'session-1',
         ];

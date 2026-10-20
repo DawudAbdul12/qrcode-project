@@ -27,7 +27,7 @@ class UssdVerificationController extends Controller
 
         $userData = trim($this->stringInput($request, 'USERDATA'));
 
-        if ($userData === '' || $this->isDialString($userData)) {
+        if ($this->isInitialRequest($request)) {
             return $this->naloResponse($userId, $msisdn, 'Enter the code printed on the product label:', true);
         }
 
@@ -222,9 +222,15 @@ class UssdVerificationController extends Controller
         return is_scalar($value) ? (string) $value : '';
     }
 
-    private function isDialString(string $userData): bool
+    private function isInitialRequest(Request $request): bool
     {
-        return str_starts_with($userData, '*') && str_ends_with($userData, '#');
+        $messageType = $request->input('MSGTYPE');
+
+        if (is_bool($messageType)) {
+            return $messageType;
+        }
+
+        return in_array(Str::lower(trim((string) $messageType)), ['1', 'true'], true);
     }
 
     private function naloResponse(string $userId, string $msisdn, string $message, bool $continueSession, int $status = 200): JsonResponse
